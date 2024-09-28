@@ -1,8 +1,19 @@
 # B/S 商品比价网站
 https://chatgpt.com/share/66f3caa2-c0c8-8000-aaa1-20157276e722
 
+## 部署
+
+### 后端
+
+`python manage.py makemigrations`
+`python manage.py migrate`
+
+`python manage.py runserver`
+
+
 ## 环境
-虚拟环境`.venv`
+Python 3.10 虚拟环境`.venv`
+
 
 ## 项目说明
 要实现一个符合上述要求的商品价格比较网站，有几个关键方面需要处理，包括用户管理、外部电商平台的数据抓取、价格比较、商品库维护、历史价格展示、降价提醒等。根据这些需求，我推荐以下技术框架和结构：

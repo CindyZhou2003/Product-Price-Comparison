@@ -25,7 +25,19 @@ SECRET_KEY = "django-insecure-w!vm=g9j)l$b6)(3w)=ah1=0s9ucmxnko*f0wh0z69+^*1k26)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1',]
+
+
+# Include localhost:3000 in CSRF_TRUSTED_ORIGINS
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:3000',
+]
+
+# Add this setting if it's not already present
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+]
+
 
 
 # Application definition
@@ -37,9 +49,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "corsheaders",
+    "backend",
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -75,9 +90,14 @@ WSGI_APPLICATION = "djangoProject.wsgi.application"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        # change the content to your local database information
+        'NAME': 'pcb',
+        'USER': 'root',
+        'PASSWORD': 'Sql_201208',
+        'HOST': 'localhost',
+        'PORT': 1024,
     }
 }
 
@@ -106,7 +126,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Shanghai"
 
 USE_I18N = True
 
@@ -122,3 +142,24 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_HEADERS = "*"
+
+# 允许跨域访问的域名列表，*表示允许所有域名
+# CORS_ALLOWED_ORIGINS = [
+#     'http://localhost:8080',  # 示例：允许从本地开发服务器访问
+#     'http://localhost:5173',
+#     # 添加其他允许的域名...
+# ]
+CORS_ALLOW_METHODS = (
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+    'VIEW',
+)

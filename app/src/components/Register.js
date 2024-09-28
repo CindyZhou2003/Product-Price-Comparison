@@ -1,4 +1,4 @@
-// src/components/SignUp.js
+// src/components/Register.js
 import React, { useState } from 'react';
 import { TextField, Button, Box, Typography, Container, Link } from '@mui/material';
 import Grid from '@mui/material/Grid2';
@@ -7,26 +7,56 @@ import Avatar from '@mui/material/Avatar';
 import CssBaseline from '@mui/material/CssBaseline';
 import { useNavigate } from 'react-router-dom';
 import BgImg from '../img/background.jpg'
-import PIcon from "../img/picon.png";
+import PIcon2 from "../img/picon2.png";
+import axios from "axios";
 
-function SignUp() {
+function Register() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (event) => {
+  // 注册提交处理函数
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    // 在这里处理表单提交逻辑，比如表单验证或注册请求
+    // 检查密码是否一致
     if (password !== confirmPassword) {
       alert("两次输入的密码不一致!");
       return;
     }
-    console.log('Username:', username);
-    console.log('Email:', email);
-    console.log('Password:', password);
-    // 进一步处理注册逻辑，例如调用API
+    // 检查表单字段是否为空
+    if (!username || !email || !password) {
+      alert("请填写所有必填字段！");
+      return;
+    }
+
+    // 构建请求数据
+    const requestData = {
+      username: username,
+      email: email,
+      password: password,
+    };
+
+    // 使用axios发送POST请求到后端注册接口
+    try {
+      const response = await axios.post('http://127.0.0.1:8000/backend/register', requestData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // 处理响应结果
+      if (response.data.status === 'ok') {
+        alert('注册成功！');
+        navigate('/login');  // 注册成功后跳转到登录页面
+      } else {
+        alert(`注册失败：${response.data.message}`);
+      }
+    } catch (error) {
+      console.error('注册请求失败:', error);
+      alert('注册失败，请稍后重试！');
+    }
   };
 
   return (
@@ -58,7 +88,7 @@ function SignUp() {
         }}
       >
         <Avatar sx={{ m: 1, bgcolor: 'secondary.main', width: 80, height: 80 }}>
-            <img src={PIcon} alt="Login Icon" style={{ width: '100%', height: '100%' }} />
+            <img src={PIcon2} alt="Login Icon" style={{ width: '100%', height: '100%' }} />
           </Avatar>
         <Typography component="h1" variant="h5">
           注册界面
@@ -102,7 +132,7 @@ function SignUp() {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            helperText="密码必须包含至少6个字符"
+            helperText="密码必须包含至少6个字符，字母和数字都要有"
           />
           <TextField
             variant="outlined"
@@ -124,7 +154,7 @@ function SignUp() {
             variant="contained"
             sx={{ mt: 3, mb: 2 }}
           >
-            登录
+            注册
           </Button>
           <Grid container justifyContent="flex-end">
             <Grid item>
@@ -140,4 +170,4 @@ function SignUp() {
   );
 }
 
-export default SignUp;
+export default Register;

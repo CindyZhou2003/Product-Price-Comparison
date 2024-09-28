@@ -8,19 +8,43 @@ import CssBaseline from '@mui/material/CssBaseline';
 import PIcon from '../img/picon.png'
 import BgImg from '../img/background.jpg'
 import { useNavigate } from 'react-router-dom';
-
+import setIsAuthenticated from "../App";
+import axios from "axios";
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     // 在这里处理表单提交逻辑，比如表单验证或登录请求
     console.log('Email:', email);
     console.log('Password:', password);
+    const requestData = {
+      email: email,
+      password: password,
+    };
 
+     try {
+      const response = await axios.post('http://127.0.0.1:8000/backend/login', requestData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+        if (response.data.status === 'ok') {
+          // 登录成功，更新登录状态并跳转到主页
+          alert('登录成功！');
+          setIsAuthenticated(true);
+          navigate('/');
+        } else {
+          alert(`登录失败：${response.data.message}`);
+        }
+      } catch (error) {
+      console.error('登录请求失败:', error);
+      alert('登录失败，请稍后重试！');
+    }
   };
 
   return (
@@ -99,7 +123,7 @@ function Login() {
                 </Link>
               </Grid>
               <Grid item offset={{ md: 'auto' }}>
-                <Link href="#" variant="body2" onClick={() => navigate('/signup')}>
+                <Link href="#" variant="body2" onClick={() => navigate('/register')}>
                   {"还没有账号？注册新账号"}
                 </Link>
               </Grid>

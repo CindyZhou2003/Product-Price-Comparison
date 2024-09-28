@@ -1,6 +1,7 @@
 # BACKEND
 .venv
 .idea
+backend/migrations
 
 # FONTEND
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
@@ -26,3 +27,5 @@ app.env.production.local
 app.npm-debug.log*
 app.yarn-debug.log*
 app.yarn-error.log*
+/backend/__pycache__
+/djangoProject/__pycache__
