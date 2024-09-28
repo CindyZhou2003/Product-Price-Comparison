@@ -19,6 +19,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
+# Using custom Account model
+AUTH_USER_MODEL = 'backend.Account'
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "django-insecure-w!vm=g9j)l$b6)(3w)=ah1=0s9ucmxnko*f0wh0z69+^*1k26)"
 
@@ -38,7 +41,9 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
 ]
 
-
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 # Application definition
 

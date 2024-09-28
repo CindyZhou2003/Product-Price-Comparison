@@ -41,6 +41,7 @@ class Account(AbstractBaseUser):
 
     objects = MyAccountManager()
 
+    # Change this field to use `email` for login
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']
 

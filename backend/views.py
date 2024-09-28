@@ -14,6 +14,7 @@ from django.contrib.auth import authenticate, login as auth_login
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth.hashers import check_password
 import re
 
 @csrf_exempt
@@ -28,30 +29,40 @@ def login(request):
     try:
         # 获取请求体中的JSON数据
         data = json.loads(request.body.decode('utf-8'))
-        check_account = data.get("account")  # 用户名或账号
+        check_username = data.get('username')
+        # check_email = data.get("email")  # 邮箱
         check_psw = data.get("password")     # 用户输入的密码
 
         # 使用 Django 提供的 authenticate 方法来验证用户名和密码
-        user = authenticate(username=check_account, password=check_psw)
+        # user = authenticate(request, email=check_email, password=check_psw)
+        user = authenticate(request, username=check_username, password=check_psw)
 
         if user is not None:
             # 用户名和密码正确，将用户标记为已登录状态
             auth_login(request, user)
             response['status'] = 'ok'
-            response['message'] = '登录成功 Login Successfully.'
+            response['message'] = 'Login Successfully.'
             response['user_id'] = user.id  # 返回用户ID以便前端使用
         else:
-            # 用户名或密码错误
-            response['status'] = 'error'
-            response['message'] = '账号或密码错误 Account or Password is incorrect.'
+            # Debugging check
+            from backend.models import Account  # Replace with your app name
+            try:
+                user = Account.objects.get(username=check_username)
+                if check_password(check_psw, user.password):
+                    response['message'] = 'Password is correct, but authenticate failed.'
+                else:
+                    response['message'] = 'Password is incorrect.'
+            except Account.DoesNotExist:
+                response['message'] = 'User does not exist.'
 
     except json.JSONDecodeError:
         response['status'] = 'error'
-        response['message'] = '无效的JSON格式 Invalid JSON format.'
+        response['message'] = 'Invalid JSON format.'
     except Exception as e:
         response['status'] = 'error'
         response['message'] = str(e)
 
+    print(response)
     return JsonResponse(response)
 
 @csrf_exempt
@@ -62,6 +73,7 @@ def register(request):
     :param request:
     :return:
     """
+    print(f"Request method: {request.method}")
     response = {}
     try:
         # 解析前端传来的 JSON 数据
@@ -92,13 +104,13 @@ def register(request):
             validate_email(email)  # 使用Django内置的邮箱验证器
         except ValidationError:
             response['status'] = 'error'
-            response['message'] = '邮箱格式不正确 Invalid email format.'
+            response['message'] = 'Invalid email format.'
             return JsonResponse(response)
 
         # 4. 校验用户名和邮箱的唯一性
         if Account.objects.filter(username=username).exists():
             response['status'] = 'error'
-            response['message'] = '用户名已存在 Username already exists.'
+            response['message'] = 'Username already exists.'
             return JsonResponse(response)
 
         if Account.objects.filter(email=email).exists():
@@ -109,7 +121,7 @@ def register(request):
         # 5. 密码复杂度检查（可选，如果需要，可以加入更多检查规则）
         if not re.match(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$', password):
             response['status'] = 'error'
-            response['message'] = '密码至少包含一个字母和一个数字 Password must contain at least one letter and one number.'
+            response['message'] = 'Password must contain at least one letter and one number.'
             return JsonResponse(response)
 
         # 6. 加密密码
@@ -121,12 +133,12 @@ def register(request):
 
         # 8. 返回成功信息
         response['status'] = 'ok'
-        response['message'] = '注册成功 Registration successful.'
+        response['message'] = 'Registration successful.'
         response['user_id'] = user.id  # 返回创建用户的ID
 
     except json.JSONDecodeError:
         response['status'] = 'error'
-        response['message'] = '无效的 JSON 格式 Invalid JSON format.'
+        response['message'] = 'Invalid JSON format.'
     except Exception as e:
         response['status'] = 'error'
         response['message'] = str(e)
