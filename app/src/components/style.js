@@ -1,5 +1,4 @@
 import { createTheme } from '@mui/material/styles';
-import Register from "./Register";
 
 const theme = createTheme({
   palette: {
@@ -11,9 +10,36 @@ const theme = createTheme({
     },
     primary: {
       light: '#f27573',
-      main: '#ef5350',
-      dark: '#a73a38',
+      main: '#c84153',
+      dark: '#a03442',
       contrastText: '#fff',
+    },
+    background: {
+      default: '#f8d3c9'  // 设置全局背景颜色
+    }
+  },
+
+  typography: {
+    fontFamily: `'Noto Serif SC', serif`,
+
+    h5:{
+      fontFamily:`'ZCOOL XiaoWei',sans-serif`,
+      fontWeight:500
+    },
+
+    h4:{
+      fontFamily:`'Ma Shan Zheng', cursive`,
+      fontWeight: 600,
+    },
+
+    body1:{
+      fontFamily: `'Noto Serif SC', serif`,
+      fontSize: '1rem'
+    },
+
+    body2:{
+      fontFamily:`'ZCOOL XiaoWei',sans-serif`,
+      fontSize: '1rem'
     },
   },
 });
