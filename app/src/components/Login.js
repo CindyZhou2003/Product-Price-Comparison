@@ -40,27 +40,12 @@ function Login({ setIsAuthenticated }) {
           // 登录成功，更新登录状态并跳转到主页
           alert('登录成功！');
           setIsAuthenticated(true);
-          console.log("Setting isAuthenticated to true");
-          setIsAuthenticated(true);
-          console.log("State set. Navigating to home...");
           navigate('/home');
         } else {
           alert(`登录失败：${response.data.message}`);
         }
       }catch (error) {
           console.error('登录请求失败:', error);
-
-          // 检查 Axios 捕捉到的错误对象
-          if (error.response) {
-            console.error('Response data:', error.response.data);
-            console.error('Response status:', error.response.status);
-            console.error('Response headers:', error.response.headers);
-          } else if (error.request) {
-            console.error('Request was made but no response received:', error.request);
-          } else {
-            console.error('An unknown error occurred:', error.message);
-          }
-
           alert('登录失败，请稍后重试！');
         }
 

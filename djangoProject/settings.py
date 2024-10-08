@@ -159,6 +159,7 @@ CORS_ALLOW_HEADERS = "*"
 #     'http://localhost:5173',
 #     # 添加其他允许的域名...
 # ]
+
 CORS_ALLOW_METHODS = (
     'DELETE',
     'GET',

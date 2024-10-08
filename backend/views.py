@@ -1,4 +1,6 @@
 import json
+import logging
+
 import pytz
 from django.db.models import Sum
 from django.core import serializers
@@ -16,6 +18,8 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.hashers import check_password
 import re
+logging.basicConfig(level=logging.DEBUG)  # 设置最低日志级别为 DEBUG
+
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -157,7 +161,6 @@ def update_price(request):
     return JsonResponse(response)
 
 
-@csrf_exempt
 @require_http_methods(["GET"])
 def search_products(request):
     """
@@ -165,19 +168,24 @@ def search_products(request):
     :param request:
     :return:
     """
-    response = {}
+    response = {
+        "status": "ok",
+        "message": "Search successful.",
+        "products": []  # 确保初始化 products 为空列表
+    }
 
     try:
         # 获取请求中的数据
-        data = json.loads(request.body.decode('utf-8'))
-        search = data.get("search", "")
-        platform = data.get("platform", "")
+        search = request.GET.get("search")
+        # platform = request.GET.get("platform")
 
         # 如果search为空，直接返回空结果
         if not search:
             response["status"] = "error"
             response["message"] = "搜索关键词为空"
             return JsonResponse(response)
+
+        # logging.debug(f"Search term: {search}")
 
         # 对搜索关键词进行分词处理
         search_terms = jieba.lcut(search)  # 使用jieba进行分词
@@ -188,12 +196,16 @@ def search_products(request):
             query |= Q(title__icontains=term)  # 模糊查询title中包含每个分词
 
         # 平台过滤
-        if platform:
-            query &= Q(platform=platform)
+        # if platform:
+        #     query &= Q(platform=platform)
+        #     # 根据条件查询符合的产品
+        #     products = Products.objects.filter(query)
+        # else:
+        #     products = Products.objects.filter(query)
 
-        # 根据条件查询符合的产品
         products = Products.objects.filter(query)
 
+        logging.debug(f"Products found: {products}")  # 打印找到的产品信息
         # 构建返回结果
         for product in products:
             response["products"].append({
@@ -207,15 +219,19 @@ def search_products(request):
                 "platform": product.platform
             })
 
+        # 打印构建的响应数据，检查返回的 JSON 是否包含完整的 products 列表
+        # logging.debug(f"Response Data: {response}")
+
     except json.JSONDecodeError:
         response["status"] = "error"
-        response["message"] = "无效的JSON格式"
+        response["message"] = "Invalid JSON format"
     except Exception as e:
         response["status"] = "error"
         response["message"] = str(e)
 
-    response['status'] = 'ok'
-    response['message'] = "搜索成功"
+
+    # 打印最终返回的 JSON 数据
+    # print(f"Final JSON response: {response}")
 
     return JsonResponse(response)
 

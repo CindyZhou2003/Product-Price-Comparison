@@ -1,5 +1,7 @@
 // Home.js
-import { AppBar, Toolbar, Typography, CssBaseline, Box, IconButton, Drawer, List, ListItem, ListItemText, Divider, InputBase, Card, CardContent, CardMedia, Button } from '@mui/material';
+import { AppBar, Toolbar, Typography, CssBaseline, Box, IconButton, Drawer, List, ListItem,
+    ListItemText, Divider, InputBase, Card, CardContent, CardMedia, Button , Tooltip} from '@mui/material';
+
 import Grid from '@mui/material/Grid2';
 import MenuIcon from '@mui/icons-material/Menu';
 import SearchIcon from '@mui/icons-material/Search';
@@ -9,18 +11,21 @@ import HistoryIcon from '@mui/icons-material/History';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import SettingsIcon from '@mui/icons-material/Settings';
 import { useState } from 'react';
-import { useNavigate } from "react-router-dom";
+import {Outlet, useLocation, useNavigate} from "react-router-dom";
 import theme from './style';
 import { ThemeProvider } from '@mui/material/styles';
 import pic1 from '../img/pic1.jpg';
 import pic2 from '../img/pic2.jpg';
 import pic3 from '../img/pic3.jpg';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+
 
 const drawerWidth = 240;
 
 function Home({ setIsAuthenticated }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation(); // Get the current route location
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -28,14 +33,16 @@ function Home({ setIsAuthenticated }) {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    localStorage.removeItem("isAuthenticated"); // Clear the persistent state
     navigate('/login');
+
   };
 
-  const menuItems = [
-    { text: '商品比价', icon: <CompareArrowsIcon /> },
-    { text: '历史价格', icon: <HistoryIcon /> },
-    { text: '关注', icon: <FavoriteIcon /> },
-    { text: '设置', icon: <SettingsIcon /> }
+ const menuItems = [
+    { text: '商品比价', icon: <CompareArrowsIcon />, path: '/home/product-comparison' },
+    { text: '历史价格', icon: <HistoryIcon />, path: '/home/price-history' },
+    { text: '关注', icon: <FavoriteIcon />, path: '/home/favorites' },
+    { text: '设置', icon: <SettingsIcon />, path: '/home/settings' }
   ];
 
   const drawer = (
@@ -44,13 +51,14 @@ function Home({ setIsAuthenticated }) {
       <Divider />
       <List>
         {menuItems.map((item) => (
-          <ListItem button key={item.text}>
+          <ListItem button key={item.text} onClick={() => navigate(item.path)}>
             <IconButton color="inherit">
               {item.icon}
             </IconButton>
             <ListItemText primary={item.text} sx={{ color: '#ffffff' }} />
           </ListItem>
         ))}
+          <Divider component="li" />
       </List>
     </div>
   );
@@ -79,28 +87,31 @@ function Home({ setIsAuthenticated }) {
             >
               <MenuIcon />
             </IconButton>
-            <Typography variant="h5" noWrap component="div" sx={{ flexGrow: 1 }}>
-              商品比价网站
+            <ShoppingCartIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1.5}} fontSize="large"/>
+            <Typography variant="h4" noWrap component="div" sx={{ flexGrow: 1 }}>
+              商品比价 Product Price Comparison
             </Typography>
             <Box sx={{ position: 'relative', display: 'flex' }}>
               <IconButton color="inherit">
-                <SearchIcon />
+                <SearchIcon fontSize="large"/>
               </IconButton>
               <InputBase
-                placeholder="Search for products..."
+                placeholder="搜索商品..."
                 inputProps={{ 'aria-label': 'search' }}
                 sx={{ color: 'inherit', ml: 1, flex: 1, borderBottom: '1px solid white' }}
               />
             </Box>
-            <IconButton
-              size="large"
-              edge="end"
-              color="inherit"
-              aria-label="account of current user"
-              onClick={handleLogout}
-            >
-              <AccountCircle />
-            </IconButton>
+            <Tooltip title="退出登录" arrow placement="bottom">
+              <IconButton
+                size="large"
+                edge="end"
+                color="inherit"
+                aria-label="account of current user"
+                onClick={handleLogout}
+              >
+                <AccountCircle fontSize="large" />
+              </IconButton>
+            </Tooltip>
           </Toolbar>
         </AppBar>
 
@@ -122,7 +133,7 @@ function Home({ setIsAuthenticated }) {
                 boxSizing: 'border-box',
                 width: drawerWidth,
                 backgroundColor: '#ba4e5c', // 设置背景颜色为深灰色
-                color: '#ffa8ab',
+                color: '#ffd9d9',
                 transition: 'background-color 0.5s ease-in-out' // 添加过渡效果
               },
             }}
@@ -160,81 +171,86 @@ function Home({ setIsAuthenticated }) {
             boxShadow: '1px 1px 10px rgba(0,0,0,0.1)', // 为主内容区添加阴影效果
           }}
         >
-          <Typography variant="h4" gutterBottom>
-            Welcome to the Price Comparison Website!
-          </Typography>
-          <Typography variant="body1" gutterBottom>
-            Here you can compare prices for different products from various online marketplaces.
-          </Typography>
-          <Typography variant="body1" gutterBottom>
-            Use the search bar at the top to find products, or navigate using the side menu to view your comparison history, favorite products, and more.
-          </Typography>
+            <Outlet />
+             {/* Only show these elements when on the /home path */}
+          {location.pathname === '/home' && (
+            <>
+              <Typography variant="h4" gutterBottom>
+                欢迎来到商品比价网站！
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                在这里，您可以比较不同在线市场的不同产品的价格。
+              </Typography>
+              <Typography variant="body1" gutterBottom>
+                使用顶部的搜索栏查找产品，或使用侧面菜单导航查看比较历史记录、最喜欢的产品等。
+              </Typography>
+               {/*Content Grid Section */}
+              <Grid container spacing={4} sx={{ mt: 4 }}>
+                {/* Product Comparison */}
+                <Grid item xs={8} md={4}>
+                  <Card sx={{ maxWidth: 300 }}>
+                    <CardMedia
+                      component="img"
+                      height="300"
+                      image={pic1}
+                      alt="Product Comparison"
+                    />
+                    <CardContent>
+                      <Typography gutterBottom variant="h5" component="div">
+                        比较商品
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        获取来自多个来源的产品之间的详细比较以找到最优惠的价格。
+                      </Typography>
+                    </CardContent>
+                    <Button size="small" color="primary">探索</Button>
+                  </Card>
+                </Grid>
 
-          {/* Content Grid Section */}
-          <Grid container spacing={4} sx={{ mt: 4 }}>
-            {/* Product Comparison */}
-            <Grid item xs={8} md={4}>
-              <Card sx={{ maxWidth: 300 }}>
-                <CardMedia
-                  component="img"
-                  height="300"
-                  image={pic1}
-                  alt="Product Comparison"
-                />
-                <CardContent>
-                  <Typography gutterBottom variant="h5" component="div">
-                    Compare Products
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Get detailed comparisons between products from multiple sources to find the best deals.
-                  </Typography>
-                </CardContent>
-                <Button size="small" color="primary">Explore</Button>
-              </Card>
-            </Grid>
+                {/* Price History */}
+                <Grid item xs={8} md={4}>
+                  <Card sx={{ maxWidth: 300 }}>
+                    <CardMedia
+                      component="img"
+                      height="300"
+                      image={pic3}
+                      alt="Price History"
+                    />
+                    <CardContent>
+                      <Typography gutterBottom variant="h5" component="div">
+                        追踪历史价格
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        查看您最喜爱的产品的历史价格趋势。
+                      </Typography>
+                    </CardContent>
+                    <Button size="small" color="primary">查看</Button>
+                  </Card>
+                </Grid>
 
-            {/* Price History */}
-            <Grid item xs={8} md={4}>
-              <Card sx={{ maxWidth: 300 }}>
-                <CardMedia
-                  component="img"
-                  height="300"
-                  image={pic3}
-                  alt="Price History"
-                />
-                <CardContent>
-                  <Typography gutterBottom variant="h5" component="div">
-                    Track Price History
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Check the historical price trends of your favorite products.
-                  </Typography>
-                </CardContent>
-                <Button size="small" color="primary">View History</Button>
-              </Card>
-            </Grid>
-
-            {/* Favorites */}
-            <Grid item xs={8} md={4}>
-              <Card sx={{ maxWidth: 300 }}>
-                <CardMedia
-                  component="img"
-                  height="300"
-                  image={pic2}
-                  alt="Favorites"
-                />
-                <CardContent>
-                  <Typography gutterBottom variant="h5" component="div">
-                    Manage Favorites
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Keep track of your favorite items and get notified of price drops.
-                  </Typography>
-                </CardContent>
-                <Button size="small" color="primary">Manage</Button>
-              </Card>
-            </Grid>
-          </Grid>
+                {/* Favorites */}
+                <Grid item xs={8} md={4}>
+                  <Card sx={{ maxWidth: 300 }}>
+                    <CardMedia
+                      component="img"
+                      height="300"
+                      image={pic2}
+                      alt="Favorites"
+                    />
+                    <CardContent>
+                      <Typography gutterBottom variant="h5" component="div">
+                        管理喜爱
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        追踪您喜爱的商品并获取降价通知。
+                      </Typography>
+                    </CardContent>
+                    <Button size="small" color="primary">管理</Button>
+                  </Card>
+                </Grid>
+              </Grid>
+            </>
+          )}
         </Box>
       </Box>
     </ThemeProvider>

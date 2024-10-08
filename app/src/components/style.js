@@ -1,5 +1,5 @@
 import { createTheme } from '@mui/material/styles';
-
+/*字体：Roboto  Lato  Oswald  Ma Shan Zheng  Noto Serif SC  ZCOOL XiaoWei*/
 const theme = createTheme({
   palette: {
     secondary: {
@@ -24,21 +24,21 @@ const theme = createTheme({
 
     h5:{
       fontFamily:`'ZCOOL XiaoWei',sans-serif`,
-      fontWeight:500
+      fontWeight:400
     },
 
     h4:{
       fontFamily:`'Ma Shan Zheng', cursive`,
-      fontWeight: 600,
+      fontWeight: 500,
     },
 
     body1:{
       fontFamily: `'Noto Serif SC', serif`,
-      fontSize: '1rem'
+      fontSize: '1.2rem'
     },
 
     body2:{
-      fontFamily:`'ZCOOL XiaoWei',sans-serif`,
+      fontFamily:`'Noto Serif SC', serif`,
       fontSize: '1rem'
     },
   },
