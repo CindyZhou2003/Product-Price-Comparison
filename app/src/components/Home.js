@@ -18,7 +18,7 @@ import pic1 from '../img/pic1.jpg';
 import pic2 from '../img/pic2.jpg';
 import pic3 from '../img/pic3.jpg';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-
+import HomeIcon from '@mui/icons-material/Home';
 
 const drawerWidth = 240;
 
@@ -39,6 +39,7 @@ function Home({ setIsAuthenticated }) {
   };
 
  const menuItems = [
+     { text: '主页', icon: <HomeIcon />, path: '/home' },
     { text: '商品比价', icon: <CompareArrowsIcon />, path: '/home/product-comparison' },
     { text: '历史价格', icon: <HistoryIcon />, path: '/home/price-history' },
     { text: '关注', icon: <FavoriteIcon />, path: '/home/favorites' },

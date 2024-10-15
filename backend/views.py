@@ -1,6 +1,5 @@
 import json
 import logging
-
 import pytz
 from django.db.models import Sum
 from django.core import serializers
@@ -18,6 +17,11 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.hashers import check_password
 import re
+import random
+import time
+from DrissionPage import ChromiumPage
+from DrissionPage._configs.chromium_options import ChromiumOptions
+from DrissionPage.errors import ElementNotFoundError
 logging.basicConfig(level=logging.DEBUG)  # 设置最低日志级别为 DEBUG
 
 
@@ -77,7 +81,7 @@ def register(request):
     :param request:
     :return:
     """
-    print(f"Request method: {request.method}")
+    # print(f"Request method: {request.method}")
     response = {}
     try:
         # 解析前端传来的 JSON 数据
@@ -149,15 +153,78 @@ def register(request):
 
     return JsonResponse(response)
 
-
-
-def update_price(request):
+@csrf_exempt
+@require_http_methods(["GET"])
+def update_and_show_price(request):
     """
     更新价格函数
     :param request:
     :return:
     """
     response = {}
+    try:
+        url = request.GET.get("search")
+        print(url)
+        if not url:
+            response['status'] = 'error'
+            response['message'] = 'url cannot be empty.'
+            return JsonResponse(response)
+
+        try:
+            good = Products.objects.get(link=url)
+        except ObjectDoesNotExist:
+            response['status'] = 'error'
+            response['message'] = 'Product matching the query does not exist111.'
+            return JsonResponse(response)
+
+        driver = ChromiumPage()
+        try:
+            # Open the specified URL
+            driver.get(url)
+            time.sleep(random.uniform(2, 5))  # Simulate a human interaction delay
+            print("Successfully loaded the product page, fetching the price...")
+
+            # Locate and fetch the price element on the page
+            price = driver.ele('css:.p-price').text
+            price_cleaned = price.replace('￥', '').strip()
+            # 转换为 float 类型
+            price_float = float(price_cleaned)
+
+            print(f"Product Price: {price_float}")
+
+            good.modify_price(price_float)
+            good.save()
+
+            # 将价格加入历史价格表
+            product_new_price = Prices(product=good, price=price_float)
+            product_new_price.save()
+
+
+        except ElementNotFoundError:
+            print("Error: Unable to find the price element on the page.")
+        finally:
+            driver.quit()  # Ensure the browser closes after the task
+
+        # 查找当前商品的历史价格
+        price_history = Prices.objects.filter(product=good).order_by('created_at')
+
+        # 准备返回给前端的历史价格数据
+        price_history_list = []
+        for entry in price_history:
+            price_history_list.append({
+                'date': entry.created_at.strftime('%Y-%m-%d'),  # 转换日期格式
+                'price': entry.price
+            })
+
+        # 返回给前端的数据
+        response['status'] = 'ok'
+        response['message'] = '更新并显示商品价格成功。'
+        response['priceHistory'] = price_history_list  # 将历史价格数据返回给前端
+
+    except Exception as e:
+        response['status'] = 'error'
+        response['message'] = str(e)
+
     return JsonResponse(response)
 
 

@@ -72,6 +72,11 @@ class Products(models.Model):
     def __str__(self):
         return self.title
 
+    def modify_price(self,new_price):
+        """更新价格"""
+        self.price = new_price
+        self.save()
+
 
 class Prices(models.Model): # 商品历史价格表
     id = models.AutoField(primary_key=True)
