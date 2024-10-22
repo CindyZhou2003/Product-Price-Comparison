@@ -16,8 +16,8 @@ import requests
 # # Print the response from the server
 # print("Status Code:", response.status_code)
 # print("Response Body:", response.json())
-#
-#
+
+
 # # Define the URL and the payload
 # url = "http://127.0.0.1:8000/backend/search_products"
 # params = {
@@ -43,15 +43,23 @@ import requests
 # else:
 #     print(f"Failed to get response. Status Code: {response.status_code}")
 
-# Define the URL and the payload
-url = "http://127.0.0.1:8000/backend/update_and_show_price"
-payload = {
-    "search":"https://item.jd.com/100004445309.html",
+
+# url = "http://127.0.0.1:8000/backend/update_and_show_price"
+# payload = {
+#     "search":"https://item.jd.com/100004445309.html",
+# }
+# url = "http://127.0.0.1:8000/backend/like"
+url ="http://127.0.0.1:8000/backend/get_favorites"
+params = {
+    "user_id":1,
 }
-
+payload = {
+    "user_id":1,
+    "id":1,
+}
 # Send a POST request to the server
-response = requests.post(url, json=payload)
-
+# response = requests.post(url, json=payload)
+response = requests.get(url, params=params)
 # Print the response from the server
 print("Status Code:", response.status_code)
 print("Response Body:", response.json())

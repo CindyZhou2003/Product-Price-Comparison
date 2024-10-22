@@ -21,7 +21,7 @@ function ProductComparison() {
   const [totalPages, setTotalPages] = useState(1);
 
   const PRODUCTS_PER_PAGE = 48;
-
+  //搜索函数
   const handleSearch = async (event) => {
     event.preventDefault();
 
@@ -47,12 +47,52 @@ function ProductComparison() {
     }
   };
 
-  const handleFavoriteClick = (index) => {
-    setFavorites((prev) => ({
-      ...prev,
-      [index]: !prev[index]
-    }));
-  };
+  //关注函数
+  const handleFavoriteClick = async (productId) => {
+  const userId = localStorage.getItem('user_id');  // 从 localStorage 获取 user_id
+
+  if (!userId) {
+    alert('请先登录后再进行关注操作。');
+    return;
+  }
+
+  // 判断当前商品是否已被关注
+  const isLiked = favorites[productId];
+
+  try {
+    // 根据当前状态决定请求类型：喜欢或者取消喜欢
+    const url = isLiked ? 'http://127.0.0.1:8000/backend/unlike' : 'http://127.0.0.1:8000/backend/like';
+
+    const response = await axios.post(url, {
+      id: productId,   // 商品 ID
+      user_id: userId  // 用户 ID
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (response.data.status === 'ok') {
+      if (isLiked) {
+        alert('取消关注成功！');
+      } else {
+        alert('关注成功！');
+      }
+
+      // 更新本地的状态，切换商品的关注状态
+      setFavorites((prev) => ({
+        ...prev,
+        [productId]: !isLiked  // 切换状态：如果已喜欢则取消，未喜欢则添加
+      }));
+    } else {
+      alert(`操作失败：${response.data.message}`);
+    }
+  } catch (error) {
+    console.error('操作请求失败:', error);
+    alert('操作失败，请稍后重试！');
+  }
+};
+
 
   const handleSortChange = (option) => {
     setSortOption(option);
@@ -149,7 +189,7 @@ function ProductComparison() {
         {paginatedProducts.length > 0 ? (
           paginatedProducts.map((product, index) => (
             <Grid item key={index} size={{ xs: 2, sm: 4, md: 3 }}>
-              <Card sx={{ height: 420, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <Card sx={{ height: 460, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <CardMedia
                   component="img"
                   sx={{ width: 180, height: 180, objectFit: 'contain', mx: 'auto', mt: 2 }}
@@ -163,9 +203,12 @@ function ProductComparison() {
                       variant="h6"
                       component="div"
                       sx={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,      // 限制文本行数为 2 行
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',      // 隐藏溢出部分
+                        textOverflow: 'ellipsis',// 使用省略号表示溢出
+                        whiteSpace: 'normal',    // 允许换行
                       }}
                     >
                       {product.title}
@@ -188,8 +231,8 @@ function ProductComparison() {
                   <Link href={product.link} target="_blank" rel="noopener" underline="hover" sx={{ mr: 2 }}>
                     查看详情
                   </Link>
-                  <IconButton onClick={() => handleFavoriteClick(index)}>
-                    {favorites[index] ? (
+                  <IconButton onClick={() => handleFavoriteClick(product.id)}>
+                    {favorites[product.id] ? (
                       <FavoriteIcon color="error" />
                     ) : (
                       <FavoriteBorderIcon />

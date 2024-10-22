@@ -38,6 +38,12 @@ function Login({ setIsAuthenticated }) {
 
         if (response.data.status === 'ok') {
           // 登录成功，更新登录状态并跳转到主页
+          const userId = response.data.user_id;
+          console.log("User ID received:", userId);
+
+          // 将 user_id 存储在 localStorage 中
+          localStorage.setItem('user_id', userId);
+
           alert('登录成功！');
           setIsAuthenticated(true);
           navigate('/home');

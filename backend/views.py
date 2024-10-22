@@ -190,7 +190,7 @@ def update_and_show_price(request):
             # 转换为 float 类型
             price_float = float(price_cleaned)
 
-            print(f"Product Price: {price_float}")
+            print(f"Current Product Price: {price_float}")
 
             good.modify_price(price_float)
             good.save()
@@ -227,7 +227,7 @@ def update_and_show_price(request):
 
     return JsonResponse(response)
 
-
+@csrf_exempt
 @require_http_methods(["GET"])
 def search_products(request):
     """
@@ -299,6 +299,109 @@ def search_products(request):
 
     # 打印最终返回的 JSON 数据
     # print(f"Final JSON response: {response}")
+
+    return JsonResponse(response)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def like(request):
+    """
+    关注某个商品
+    :param request:
+    :return:
+    """
+    response = {}
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        product_id = data.get('id')
+        product = Products.objects.get(id=product_id)
+        user_id = data.get('user_id')
+        user = Account.objects.get(id=user_id)
+
+        if not product:
+            response['status'] = 'error'
+            response['message'] = 'Product does not exist.'
+            return JsonResponse(response)
+
+        user_like = Likes(user_id=user, product=product)
+        user_like.save()
+
+        response['status'] = 'ok'
+        response['message'] = 'Like product successful'
+
+    except Exception as e:
+        response['status'] = 'error'
+        response['message'] = str(e)
+
+    return JsonResponse(response)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def unlike(request):
+    """
+    取消关注某个商品
+    :param request:
+    :return:
+    """
+    response = {}
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+
+        product_id = data.get('id')
+        product = Products.objects.get(id=product_id)
+
+        user_id = data.get('user_id')
+        user = Account.objects.get(id=user_id)
+        # 查询用户是否已经关注了该商品
+        user_like = Likes.objects.filter(user_id=user, product=product).first()
+
+        if user_like:
+            user_like.delete()  # 如果存在记录，则删除，表示取消关注
+            response['status'] = 'ok'
+            response['message'] = 'Unlike product successful.'
+        else:
+            response['status'] = 'error'
+            response['message'] = 'No like record.'
+
+    except Exception as e:
+        response['status'] = 'error'
+        response['message'] = str(e)
+
+    return JsonResponse(response)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_favorites(request):
+    """
+    获取用户关注的商品列表
+    """
+    response = {}
+    try:
+        user_id = request.GET.get('user_id')
+        if not user_id:
+            response['status'] = 'error'
+            response['message'] = 'Missing user ID'
+            return JsonResponse(response)
+
+        favorites = Likes.objects.filter(user_id=user_id).select_related('product')
+
+        product_list = [{
+            'id': favorite.product.id,
+            'title': favorite.product.title,
+            'img': favorite.product.img,
+            'price': favorite.product.price,
+            'shop': favorite.product.shop,
+            'platform': favorite.product.platform,
+            'link': favorite.product.link,
+        } for favorite in favorites]
+
+        response['status'] = 'ok'
+        response['favorites'] = product_list
+
+    except Exception as e:
+        response['status'] = 'error'
+        response['message'] = str(e)
 
     return JsonResponse(response)
 

@@ -9,4 +9,8 @@ urlpatterns = [
     path('search_products', views.search_products),
     # http://127.0.0.1:8000/backend/search_products?search=手机
     path('update_and_show_price',views.update_and_show_price),
+
+    path('like', views.like),
+    path('unlike',views.unlike),
+    path('get_favorites',views.get_favorites),
 ]

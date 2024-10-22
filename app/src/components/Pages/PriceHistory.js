@@ -54,7 +54,7 @@ function PriceHistory() {
         borderWidth: 4, // 调整线条宽度
         pointRadius: 4, // 调整数据点的半径
         pointBackgroundColor: 'rgba(75, 192, 192, 1)', // 数据点颜色
-        pointBorderWidth: 2, // 数据点边框宽度
+        pointBorderWidth: 4, // 数据点边框宽度
         tension: 0.4, // 增加曲线的平滑度
       },
     ],
