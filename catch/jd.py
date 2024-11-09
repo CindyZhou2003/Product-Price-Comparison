@@ -1,4 +1,4 @@
-#
+# jd爬虫代码
 import random
 import time
 import csv

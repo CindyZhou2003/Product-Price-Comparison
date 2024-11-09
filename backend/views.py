@@ -1,5 +1,7 @@
 import json
 import logging
+from urllib import request
+
 import pytz
 from django.db.models import Sum
 from django.core import serializers
@@ -17,13 +19,19 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.hashers import check_password
 import re
-import random
-import time
 from DrissionPage import ChromiumPage
 from DrissionPage._configs.chromium_options import ChromiumOptions
 from DrissionPage.errors import ElementNotFoundError
 logging.basicConfig(level=logging.DEBUG)  # 设置最低日志级别为 DEBUG
-
+import random
+from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from pyquery import PyQuery as pq
+import time
+import csv
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -154,6 +162,61 @@ def register(request):
     return JsonResponse(response)
 
 @csrf_exempt
+@require_http_methods(["POST"])
+def change_password(request):
+    """
+    用户修改密码函数
+    :param request:
+    :return:
+    """
+    response = {}
+    try:
+        # Parse JSON data from the request
+        data = json.loads(request.body.decode('utf-8'))
+        user_id = data.get("user_id")
+        old_password = data.get("old_password")
+        new_password = data.get("new_password")
+
+        # Validate inputs
+        if not user_id or not old_password or not new_password:
+            response['status'] = 'error'
+            response['message'] = 'User id, old password, and new password are required.'
+            return JsonResponse(response, status=400)
+
+        # Retrieve user and check old password
+        user = Account.objects.get(id=user_id)
+        if not check_password(old_password, user.password):
+            response['status'] = 'error'
+            response['message'] = 'Old password is incorrect.'
+            return JsonResponse(response, status=400)
+
+        # Set and save the new password
+        if not re.match(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$', new_password):
+            response['status'] = 'error'
+            response['message'] = 'Password must contain at least one letter and one number.'
+            return JsonResponse(response)
+
+        user.set_password(new_password)
+        user.save()
+
+        response['status'] = 'ok'
+        response['message'] = 'Password changed successfully.'
+        return JsonResponse(response, status=200)
+
+    except Account.DoesNotExist:
+        response['status'] = 'error'
+        response['message'] = 'User does not exist.'
+        return JsonResponse(response, status=404)
+    except json.JSONDecodeError:
+        response['status'] = 'error'
+        response['message'] = 'Invalid JSON format.'
+        return JsonResponse(response, status=400)
+    except Exception as e:
+        response['status'] = 'error'
+        response['message'] = str(e)
+        return JsonResponse(response, status=500)
+
+@csrf_exempt
 @require_http_methods(["GET"])
 def update_and_show_price(request):
     """
@@ -165,6 +228,7 @@ def update_and_show_price(request):
     try:
         url = request.GET.get("search")
         print(url)
+
         if not url:
             response['status'] = 'error'
             response['message'] = 'url cannot be empty.'
@@ -174,7 +238,7 @@ def update_and_show_price(request):
             good = Products.objects.get(link=url)
         except ObjectDoesNotExist:
             response['status'] = 'error'
-            response['message'] = 'Product matching the query does not exist111.'
+            response['message'] = 'Product matching the query does not exist.'
             return JsonResponse(response)
 
         driver = ChromiumPage()
@@ -229,6 +293,37 @@ def update_and_show_price(request):
 
 @csrf_exempt
 @require_http_methods(["GET"])
+def get_all_products(request):
+    """
+
+    :param request:
+    :return:
+    """
+    response = {}
+    try:
+        # 获取请求中的数据
+        products = Products.objects.filter()
+        for product in products:
+            response["products"].append({
+                "id": product.id,
+                "title": product.title,
+                "price": product.price,
+                "info": product.info,
+                "shop": product.shop,
+                "img": product.img,
+                "link": product.link,
+                "platform": product.platform
+            })
+
+    except json.JSONDecodeError:
+        response["status"] = "error"
+        response["message"] = "Invalid JSON format"
+    except Exception as e:
+        response["status"] = "error"
+        response["message"] = str(e)
+
+@csrf_exempt
+@require_http_methods(["GET"])
 def search_products(request):
     """
     搜索库中的产品，支持分词处理和平台过滤
@@ -272,14 +367,14 @@ def search_products(request):
 
         products = Products.objects.filter(query)
 
-        logging.debug(f"Products found: {products}")  # 打印找到的产品信息
+        # logging.debug(f"Products found: {products}")  # 打印找到的产品信息
         # 构建返回结果
         for product in products:
             response["products"].append({
                 "id": product.id,
                 "title": product.title,
                 "price": product.price,
-                "comments": product.comments,
+                "info": product.info,
                 "shop": product.shop,
                 "img": product.img,
                 "link": product.link,
@@ -405,3 +500,56 @@ def get_favorites(request):
 
     return JsonResponse(response)
 
+@csrf_exempt
+@require_http_methods(["POST"])
+def send_user_email(request):
+    """
+
+    :return:
+    """
+    response = {}
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+
+    except Exception as e:
+
+        response['status'] = 'error'
+        response['message'] = str(e)
+        return JsonResponse(response)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def search_platform_products(request):
+    """
+
+    :return:
+    """
+    response = {
+        "status": "ok",
+        "message": "Search successful.",
+        "products": []  # 确保初始化 products 为空列表
+    }
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        search = data.get("search")
+        platform = data.get("platform")
+
+        # 如果search为空，直接返回空结果
+        if not search or not platform:
+            response["status"] = "error"
+            response["message"] = "搜索关键词为空或未选择平台"
+            return JsonResponse(response)
+
+        if platform == '淘宝':
+            website='www.taobao.com'
+        elif platform == '京东':
+            website='www.jd.com'
+
+
+
+    except Exception as e:
+
+        response['status'] = 'error'
+        response['message'] = str(e)
+        return JsonResponse(response)

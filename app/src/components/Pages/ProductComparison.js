@@ -244,7 +244,7 @@ function ProductComparison() {
           ))
         ) : (
           <Typography variant="body1" sx={{ mt: 2 }}>
-            请先进行搜索；如搜索成功，则未找到对应的商品，请尝试更换关键词进行搜索
+            请输入关键词进行搜索
           </Typography>
         )}
       </Grid>

@@ -63,7 +63,7 @@ class Products(models.Model):
     id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=255, null=False)  # 商品名称
     price = models.FloatField(null=False)  # 商品当前价格
-    comments = models.CharField(max_length=50, null=False)  # 评论数
+    info = models.CharField(max_length=50, null=False)  # 评论数或购买人数
     shop = models.CharField(max_length=50, null=False)  # 店铺名
     img = models.CharField(max_length=255, null=False)  # 商品图片 URL
     link = models.CharField(max_length=255, null=False)  # 商品购买链接
