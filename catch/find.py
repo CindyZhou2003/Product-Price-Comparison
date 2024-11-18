@@ -40,28 +40,31 @@ def find_specific_product(url):
     # 手动扫码登录
     input("请在浏览器中扫码登录，完成后按回车继续...")
 
-    def get_price():
-        try:
-            # 尝试查找第一个选择器
-            price_element = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'span.text--lKftOoXS')))
-            return price_element.text
-        except:
-            pass
+    time.sleep(5)  # 额外等待时间，确保 JavaScript 内容加载完成
 
-        try:
-            # 如果第一个选择器不存在，则尝试第二个选择器
-            price_element = wait.until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, 'span.priceText--gdYzG_l_.extraPriceText--aysuZjG_')))
-            return price_element.text
-        except:
-            return None
+    # 获取页面 HTML 源代码
+    html = driver.page_source
+    doc = pq(html)
 
-    # 获取价格
-    price = get_price()
-    if price:
-        print(f"Product Price: {price}")
-    else:
-        print("未找到价格信息")
+    def get_prices():
+        # 优先查找原价和优惠价
+        # original_price = doc('div.originPrice--UnZ18wCd .priceText--gdYzG_l_').text()
+        discounted_price = doc('div.extraPrice--Y7SiNGXT .priceText--gdYzG_l_.extraPriceText--aysuZjG_').text()
+
+        # 如果存在原价和优惠价，则输出
+        if discounted_price:
+            # print(f"原价: {original_price if original_price else '未找到'}")
+            print(f"券后价: {discounted_price if discounted_price else '未找到'}")
+        else:
+            # 尝试获取单一价格
+            single_price = doc('div.highlightPrice--ojI4oith .text--lKftOoXS').text()
+            if single_price:
+                print(f"单一价格: {single_price}")
+            else:
+                print("未找到任何价格信息")
+
+    # 调用函数获取价格
+    get_prices()
 
     # 关闭浏览器
     driver.quit()

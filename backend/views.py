@@ -1,8 +1,7 @@
 import json
 import logging
-from urllib import request
-
 import pytz
+import requests
 from django.db.models import Sum
 from django.core import serializers
 from django.core.serializers import serialize
@@ -216,6 +215,35 @@ def change_password(request):
         response['message'] = str(e)
         return JsonResponse(response, status=500)
 
+
+def identify_platform(url):
+    """
+    判断链接是否属于淘宝或京东，并检查链接是否有效。
+    """
+    # 定义正则表达式模式
+    taobao_pattern = re.compile(r'(detail\.tmall\.com|item\.taobao\.com)')
+    jd_pattern = re.compile(r'item\.jd\.com')
+
+    # 检查链接是否为淘宝链接
+    if taobao_pattern.search(url):
+        platform = '淘宝'
+    # 检查链接是否为京东链接
+    elif jd_pattern.search(url):
+        platform = '京东'
+    else:
+        platform = '未知平台'
+
+    # 尝试打开链接
+    try:
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()  # 如果响应状态码不是 200，则引发 HTTPError
+        print(f"链接有效，平台: {platform}")
+    except requests.exceptions.RequestException as e:
+        print(f"无法打开链接: {url}\n错误信息: {e}")
+        platform = None
+
+    return platform
+
 @csrf_exempt
 @require_http_methods(["GET"])
 def update_and_show_price(request):
@@ -241,33 +269,88 @@ def update_and_show_price(request):
             response['message'] = 'Product matching the query does not exist.'
             return JsonResponse(response)
 
-        driver = ChromiumPage()
-        try:
-            # Open the specified URL
-            driver.get(url)
-            time.sleep(random.uniform(2, 5))  # Simulate a human interaction delay
-            print("Successfully loaded the product page, fetching the price...")
+        platform = identify_platform(url)
 
-            # Locate and fetch the price element on the page
-            price = driver.ele('css:.p-price').text
-            price_cleaned = price.replace('￥', '').strip()
-            # 转换为 float 类型
-            price_float = float(price_cleaned)
+        if platform == '淘宝':
 
-            print(f"Current Product Price: {price_float}")
+            options = webdriver.ChromeOptions()
+            options.add_experimental_option("excludeSwitches", ['enable-automation'])
+            driver = webdriver.Chrome(options=options)
 
-            good.modify_price(price_float)
-            good.save()
+            try:
+                # 反爬机制
+                driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument",
+                                       {
+                                           "source": """Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"""})
+                driver.get(url)
+                driver.maximize_window()
+                wait = WebDriverWait(driver, 10)
+                # 手动扫码登录
+                input("请在浏览器中扫码登录，完成后按回车继续...")
+                time.sleep(random.uniform(3, 5))  # 额外等待时间，确保 JavaScript 内容加载完成
 
-            # 将价格加入历史价格表
-            product_new_price = Prices(product=good, price=price_float)
-            product_new_price.save()
+                # 获取页面 HTML 源代码
+                html = driver.page_source
+                doc = pq(html)
 
+                # 优先查找原价和优惠价
+                # original_price = doc('div.originPrice--UnZ18wCd .priceText--gdYzG_l_').text()
+                current_price = doc('div.extraPrice--Y7SiNGXT .priceText--gdYzG_l_.extraPriceText--aysuZjG_').text()
 
-        except ElementNotFoundError:
-            print("Error: Unable to find the price element on the page.")
-        finally:
-            driver.quit()  # Ensure the browser closes after the task
+                if current_price:
+                    print(f"Current Product Price:{current_price}" )
+                else:
+                    # 尝试获取单一价格
+                    current_price = doc('div.highlightPrice--ojI4oith .text--lKftOoXS').text()
+                    if current_price:
+                        print(f"Current Product Price: {current_price}")
+                    else:
+                        print("未找到任何价格信息")
+
+                good.modify_price(current_price)
+                good.save()
+                # 将价格加入历史价格表
+                product_new_price = Prices(product=good, price=current_price)
+                product_new_price.save()
+
+            except ElementNotFoundError:
+                print("Error: Unable to find the price element on the page.")
+            # 关闭浏览器
+            finally:
+                driver.quit()
+
+        elif platform == '京东':
+            driver = ChromiumPage()
+            try:
+                # Open the specified URL
+                driver.get(url)
+                time.sleep(random.uniform(2, 5))  # Simulate a human interaction delay
+                print("Successfully loaded the product page, fetching the price...")
+
+                # Locate and fetch the price element on the page
+                price = driver.ele('css:.p-price').text
+                price_cleaned = price.replace('￥', '').strip()
+                # 转换为 float 类型
+                price_float = float(price_cleaned)
+
+                print(f"Current Product Price: {price_float}")
+
+                good.modify_price(price_float)
+                good.save()
+                # 将价格加入历史价格表
+                product_new_price = Prices(product=good, price=price_float)
+                product_new_price.save()
+
+            except ElementNotFoundError:
+                print("Error: Unable to find the price element on the page.")
+            finally:
+                driver.quit()  # Ensure the browser closes after the task
+
+        else:
+            response['status'] = 'error'
+            response['message'] = '不支持该平台'
+            return JsonResponse(response)
+
 
         # 查找当前商品的历史价格
         price_history = Prices.objects.filter(product=good).order_by('created_at')
