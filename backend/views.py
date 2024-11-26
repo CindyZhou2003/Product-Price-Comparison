@@ -1,12 +1,7 @@
 import json
 import logging
-import pytz
 import requests
-from django.db.models import Sum
-from django.core import serializers
-from django.core.serializers import serialize
-from django.http import HttpResponse, JsonResponse
-from django.utils.timezone import make_aware
+from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from backend.models import *
 from django.views.decorators.csrf import csrf_exempt
@@ -14,23 +9,21 @@ from django.db.models import Q
 import jieba  # 引入jieba进行中文分词
 from django.contrib.auth import authenticate, login as auth_login
 from django.core.validators import validate_email
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.hashers import check_password
 import re
 from DrissionPage import ChromiumPage
-from DrissionPage._configs.chromium_options import ChromiumOptions
 from DrissionPage.errors import ElementNotFoundError
 logging.basicConfig(level=logging.DEBUG)  # 设置最低日志级别为 DEBUG
 import random
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from pyquery import PyQuery as pq
 import time
-import csv
+from django.core.mail import send_mail
+
+from catch.crawler import crawl_tb, crawl_jd
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -215,7 +208,6 @@ def change_password(request):
         response['message'] = str(e)
         return JsonResponse(response, status=500)
 
-
 def identify_platform(url):
     """
     判断链接是否属于淘宝或京东，并检查链接是否有效。
@@ -243,6 +235,82 @@ def identify_platform(url):
         platform = None
 
     return platform
+
+def tb_update_price(good,url):
+    options = webdriver.ChromeOptions()
+    options.add_experimental_option("excludeSwitches", ['enable-automation'])
+    driver = webdriver.Chrome(options=options)
+
+    try:
+        # 反爬机制
+        driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument",
+                               {"source": """Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"""})
+        driver.get(url)
+        driver.maximize_window()
+        wait = WebDriverWait(driver, 10)
+        # 手动扫码登录
+        # input("请在浏览器中扫码登录，完成后按回车继续...")
+        time.sleep(10)
+        time.sleep(random.uniform(3, 5))  # 额外等待时间，确保 JavaScript 内容加载完成
+
+        # 获取页面 HTML 源代码
+        html = driver.page_source
+        doc = pq(html)
+
+        current_price = doc('div.originPrice--UnZ18wCd .priceText--gdYzG_l_').eq(0).text()
+        # current_price = doc('div.extraPrice--Y7SiNGXT .priceText--gdYzG_l_.extraPriceText--aysuZjG_').text()
+
+        if current_price:
+            good.modify_price(current_price)
+            good.save()
+        else:
+            # 尝试获取单一价格
+            current_price = doc('div.highlightPrice--OOP9oDP8 .text--fZ9NUhyQ').eq(0).text()
+            if current_price:
+                good.modify_price(current_price)
+                good.save()
+            else:
+                print("未找到任何价格信息")
+        print("current price:", current_price)
+        # 将价格加入历史价格表
+        product_new_price = Prices(product=good, price=current_price)
+        product_new_price.save()
+    except ElementNotFoundError:
+        print("Error: Unable to find the price element on the page.")
+    # 关闭浏览器
+    finally:
+        driver.quit()
+
+def jd_update_price(good,url):
+    driver = ChromiumPage()
+    try:
+        # Open the specified URL
+        driver.get(url)
+        time.sleep(random.uniform(2, 5))  # Simulate a human interaction delay
+        time.sleep(10) # 手动登录
+        print("Successfully loaded the product page, fetching the price...")
+
+        # Locate and fetch the price element on the page
+        price_float = float(driver.ele('css:.price').text)
+        if price_float:
+            print(f"Current Product Price:{price_float}")
+        else:
+            price = driver.ele('css:.p-price').text
+            price_cleaned = price.replace('￥', '').strip()
+            # 转换为 float 类型
+            price_float = float(price_cleaned)
+            print(f"Current Product Price: {price_float}")
+
+        good.modify_price(price_float)
+        good.save()
+        # 将价格加入历史价格表
+        product_new_price = Prices(product=good, price=price_float)
+        product_new_price.save()
+
+    except ElementNotFoundError:
+        print("Error: Unable to find the price element on the page.")
+    finally:
+        driver.quit()  # Ensure the browser closes after the task
 
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -272,85 +340,13 @@ def update_and_show_price(request):
         platform = identify_platform(url)
 
         if platform == '淘宝':
-
-            options = webdriver.ChromeOptions()
-            options.add_experimental_option("excludeSwitches", ['enable-automation'])
-            driver = webdriver.Chrome(options=options)
-
-            try:
-                # 反爬机制
-                driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument",
-                                       {
-                                           "source": """Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"""})
-                driver.get(url)
-                driver.maximize_window()
-                wait = WebDriverWait(driver, 10)
-                # 手动扫码登录
-                input("请在浏览器中扫码登录，完成后按回车继续...")
-                time.sleep(random.uniform(3, 5))  # 额外等待时间，确保 JavaScript 内容加载完成
-
-                # 获取页面 HTML 源代码
-                html = driver.page_source
-                doc = pq(html)
-
-                # 优先查找原价和优惠价
-                # original_price = doc('div.originPrice--UnZ18wCd .priceText--gdYzG_l_').text()
-                current_price = doc('div.extraPrice--Y7SiNGXT .priceText--gdYzG_l_.extraPriceText--aysuZjG_').text()
-
-                if current_price:
-                    print(f"Current Product Price:{current_price}" )
-                else:
-                    # 尝试获取单一价格
-                    current_price = doc('div.highlightPrice--ojI4oith .text--lKftOoXS').text()
-                    if current_price:
-                        print(f"Current Product Price: {current_price}")
-                    else:
-                        print("未找到任何价格信息")
-
-                good.modify_price(current_price)
-                good.save()
-                # 将价格加入历史价格表
-                product_new_price = Prices(product=good, price=current_price)
-                product_new_price.save()
-
-            except ElementNotFoundError:
-                print("Error: Unable to find the price element on the page.")
-            # 关闭浏览器
-            finally:
-                driver.quit()
-
+            tb_update_price(good, url)
         elif platform == '京东':
-            driver = ChromiumPage()
-            try:
-                # Open the specified URL
-                driver.get(url)
-                time.sleep(random.uniform(2, 5))  # Simulate a human interaction delay
-                print("Successfully loaded the product page, fetching the price...")
-
-                # Locate and fetch the price element on the page
-                price = driver.ele('css:.p-price').text
-                price_cleaned = price.replace('￥', '').strip()
-                # 转换为 float 类型
-                price_float = float(price_cleaned)
-
-                print(f"Current Product Price: {price_float}")
-
-                good.modify_price(price_float)
-                good.save()
-                # 将价格加入历史价格表
-                product_new_price = Prices(product=good, price=price_float)
-                product_new_price.save()
-
-            except ElementNotFoundError:
-                print("Error: Unable to find the price element on the page.")
-            finally:
-                driver.quit()  # Ensure the browser closes after the task
-
+            jd_update_price(good, url)
         else:
             response['status'] = 'error'
             response['message'] = '不支持该平台'
             return JsonResponse(response)
-
 
         # 查找当前商品的历史价格
         price_history = Prices.objects.filter(product=good).order_by('created_at')
@@ -378,7 +374,7 @@ def update_and_show_price(request):
 @require_http_methods(["GET"])
 def get_all_products(request):
     """
-
+    展示数据库中所有商品
     :param request:
     :return:
     """
@@ -450,7 +446,6 @@ def search_products(request):
 
         products = Products.objects.filter(query)
 
-        # logging.debug(f"Products found: {products}")  # 打印找到的产品信息
         # 构建返回结果
         for product in products:
             response["products"].append({
@@ -464,9 +459,6 @@ def search_products(request):
                 "platform": product.platform
             })
 
-        # 打印构建的响应数据，检查返回的 JSON 是否包含完整的 products 列表
-        # logging.debug(f"Response Data: {response}")
-
     except json.JSONDecodeError:
         response["status"] = "error"
         response["message"] = "Invalid JSON format"
@@ -474,10 +466,8 @@ def search_products(request):
         response["status"] = "error"
         response["message"] = str(e)
 
-
     # 打印最终返回的 JSON 数据
     # print(f"Final JSON response: {response}")
-
     return JsonResponse(response)
 
 @csrf_exempt
@@ -486,7 +476,7 @@ def like(request):
     """
     关注某个商品
     :param request:
-    :return:
+    :return:JsonResponse
     """
     response = {}
     try:
@@ -583,19 +573,130 @@ def get_favorites(request):
 
     return JsonResponse(response)
 
+
+def check_price(item_url):
+    """
+    确认当前价格是否低于之前价格
+    :param item_url: 商品的url
+    :return: bool True or False
+    """
+    try:
+        # 尝试获取对应的商品记录
+        good = Products.objects.get(link=item_url)
+    except ObjectDoesNotExist:
+        raise ValueError("商品未被收录")  # 抛出异常，说明商品未被收录
+
+    # 判断商品所属平台
+    platform = identify_platform(item_url)
+
+    # 更新商品价格
+    if platform == '淘宝':
+        tb_update_price(good, item_url)
+    elif platform == '京东':
+        jd_update_price(good, item_url)
+    else:
+        raise ValueError("不支持的平台")  # 抛出异常，说明该平台无法查询价格
+
+    try:
+        # 获取用户关注商品的时间
+        liked_time = Likes.objects.get(product=good).created_at
+    except ObjectDoesNotExist:
+        raise ValueError("未找到用户对该商品的关注记录")  # 抛出异常，说明未找到关注记录
+
+    # 查询商品的历史价格记录
+    price_history = Prices.objects.filter(product=good).order_by('created_at')
+
+    # 找到关注时间之前最近一次的价格
+    pre_liked_price = price_history.filter(created_at__lt=liked_time).last()
+
+    # 如果关注时间之前没有价格记录，使用 Products 表中的价格
+    if not pre_liked_price:
+        pre_liked_price_value = good.price
+    else:
+        pre_liked_price_value = pre_liked_price.price
+
+    # 找到关注时间之后的所有价格
+    post_liked_prices = price_history.filter(created_at__gte=liked_time)
+
+    # 比较逻辑：检查关注时间后的价格是否低于关注时间前的最后价格
+    for post_price in post_liked_prices:
+        if post_price.price < pre_liked_price_value:
+            return True  # 找到符合条件的价格，返回True
+
+    # 如果没有找到更低的价格，返回False
+    return False
+
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def send_user_email(request):
     """
-
-    :return:
+    用户关注的商品降价后给他们发送邮件
+    :return: JsonResponse
     """
     response = {}
     try:
+        # 获取请求数据
         data = json.loads(request.body.decode('utf-8'))
+        user_id = data.get('user_id')
+
+        # 获取用户信息
+        user = Account.objects.get(id=user_id)
+        can_send_email = user.email_active
+        if not can_send_email:
+            response['status'] = 'error'
+            response['message'] = 'User close email service.'
+            return JsonResponse(response)
+
+        user_email = user.email
+        username = user.username
+
+        # 查询用户关注的商品
+        likes = Likes.objects.filter(user_id=user_id)
+
+        if not likes.exists():
+            response['status'] = 'error'
+            response['message'] = "用户没有关注任何商品"
+            return JsonResponse(response)
+
+        # 准备邮件内容
+        lowered_price_items = []
+        for like in likes:
+            product = like.product
+            if check_price(product.link):  # 调用 check_price 检查是否降价
+                lowered_price_items.append(product)
+
+        if not lowered_price_items:
+            response['status'] = 'success'
+            response['message'] = "没有降价的商品"
+            return JsonResponse(response)
+
+        # 拼接降价商品信息
+        items_info = "\n".join([
+            f"{item.title}: {item.price} - {item.link}" for item in lowered_price_items
+        ])
+        subject = "您关注的商品已降价！"
+        message = f"亲爱的 {username},\n\n您关注的以下商品已降价：\n\n{items_info}\n\n快去抢购吧！"
+
+        # 发送邮件
+        send_mail(
+            subject,
+            message,
+            'CindyZhou6418@gmail.com',  # 替换为发件人地址
+            [user_email],
+            fail_silently=False,
+        )
+
+        response['status'] = 'success'
+        response['message'] = f"已向用户 {username} 发送降价通知"
+        return JsonResponse(response)
+
+    except Account.DoesNotExist:
+        response['status'] = 'error'
+        response['message'] = "用户不存在"
+        return JsonResponse(response)
 
     except Exception as e:
-
         response['status'] = 'error'
         response['message'] = str(e)
         return JsonResponse(response)
@@ -605,14 +706,10 @@ def send_user_email(request):
 @require_http_methods(["POST"])
 def search_platform_products(request):
     """
-
+    在平台上搜索、爬虫，并将数据加入数据库
     :return:
     """
-    response = {
-        "status": "ok",
-        "message": "Search successful.",
-        "products": []  # 确保初始化 products 为空列表
-    }
+    response = {}
     try:
         data = json.loads(request.body.decode('utf-8'))
         search = data.get("search")
@@ -625,14 +722,17 @@ def search_platform_products(request):
             return JsonResponse(response)
 
         if platform == '淘宝':
-            website='www.taobao.com'
+            crawl_tb(search)
         elif platform == '京东':
-            website='www.jd.com'
+            crawl_jd(search)
 
-
+        response["status"] = "success"
+        response["message"] = "爬取平台商品数据成功"
+        return JsonResponse(response)
 
     except Exception as e:
 
         response['status'] = 'error'
         response['message'] = str(e)
         return JsonResponse(response)
+

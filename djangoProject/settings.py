@@ -169,3 +169,13 @@ CORS_ALLOW_METHODS = (
     'PUT',
     'VIEW',
 )
+
+# 发邮件相关设置
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # SMTP服务器地址 smtp.gmail.com
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+EMAIL_HOST_USER = 'CindyZhou6418@gmail.com'  # 发件人邮箱
+EMAIL_HOST_PASSWORD = 'xnxd hbvz yewl nbim'  # 发件人邮箱密码
+DEFAULT_FROM_EMAIL = 'CindyZhou6418@gmail.com'

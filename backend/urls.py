@@ -15,8 +15,8 @@ urlpatterns = [
     path('like', views.like), # 关注商品
     path('unlike',views.unlike), # 取消关注
     path('get_favorites',views.get_favorites), # 展示关注列表
-    # path('send_user_email',views.send_user_email), # 提醒用户降价
 
-    # path('search_platform_products',views.search_platform_products), # 平台搜索（爬虫）商品加入数据库
+    path('search_platform_products',views.search_platform_products), # 平台搜索（爬虫）商品加入数据库
+    path('send_user_email',views.send_user_email), # 发送降价邮件提醒
 
 ]

@@ -2,6 +2,7 @@
 https://chatgpt.com/share/66f3caa2-c0c8-8000-aaa1-20157276e722
 
 ## 部署
+有关警告 link不能unique：https://chatgpt.com/c/6745dc57-147c-8000-96e7-165ed1202d7c
 
 ### 后端
 
