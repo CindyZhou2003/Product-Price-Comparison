@@ -5,12 +5,11 @@ import Grid from '@mui/material/Grid2';
 import Avatar from '@mui/material/Avatar';
 import CssBaseline from '@mui/material/CssBaseline';
 import { useNavigate } from 'react-router-dom';
-import BgImg from '../img/background.jpg'
+import BgImg from '../img/bc2.png'
 import PIcon2 from "../img/picon2.png";
 import axios from "axios";
 import theme from './style'
 import {ThemeProvider } from '@mui/material/styles';
-
 
 function Register() {
   const [username, setUsername] = useState('');

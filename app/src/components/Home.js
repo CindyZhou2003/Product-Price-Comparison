@@ -90,7 +90,7 @@ function Home({ setIsAuthenticated }) {
             </IconButton>
             <ShoppingCartIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1.5}} fontSize="large"/>
             <Typography variant="h4" noWrap component="div" sx={{ flexGrow: 1 }}>
-              商品比价 Product Price Comparison
+              商品比价网站 PricePilot
             </Typography>
             <Box sx={{ position: 'relative', display: 'flex' }}>
               <IconButton color="inherit">

@@ -2,16 +2,15 @@
 import { useState } from 'react';
 import { TextField, Button, Box, Typography, Container, Link } from '@mui/material';
 import Grid from '@mui/material/Grid2';
-// import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import Avatar from '@mui/material/Avatar';
 import CssBaseline from '@mui/material/CssBaseline';
 import PIcon from '../img/picon2.png'
-import BgImg from '../img/background.jpg'
+import BgImg from '../img/bc.png'
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
 import theme from './style'
 import {ThemeProvider } from '@mui/material/styles';
-
+// import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 
 function Login({ setIsAuthenticated }) {
   const [username, setUsername] = useState('');
@@ -90,7 +89,7 @@ function Login({ setIsAuthenticated }) {
                 <img src={PIcon} alt="Login Icon" style={{ width: '100%', height: '100%' }} />
               </Avatar>
               <Typography component="h1" variant="h4">
-                商品比价网站
+                商品比价网站 PricePilot
               </Typography>
               <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
                 <TextField

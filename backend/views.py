@@ -401,6 +401,7 @@ def get_all_products(request):
         response["status"] = "error"
         response["message"] = str(e)
 
+
 @csrf_exempt
 @require_http_methods(["GET"])
 def search_products(request):
@@ -426,8 +427,6 @@ def search_products(request):
             response["message"] = "搜索关键词为空"
             return JsonResponse(response)
 
-        # logging.debug(f"Search term: {search}")
-
         # 对搜索关键词进行分词处理
         search_terms = jieba.lcut(search)  # 使用jieba进行分词
 
@@ -435,14 +434,6 @@ def search_products(request):
         query = Q()
         for term in search_terms:
             query |= Q(title__icontains=term)  # 模糊查询title中包含每个分词
-
-        # 平台过滤
-        # if platform:
-        #     query &= Q(platform=platform)
-        #     # 根据条件查询符合的产品
-        #     products = Products.objects.filter(query)
-        # else:
-        #     products = Products.objects.filter(query)
 
         products = Products.objects.filter(query)
 
@@ -466,9 +457,72 @@ def search_products(request):
         response["status"] = "error"
         response["message"] = str(e)
 
-    # 打印最终返回的 JSON 数据
-    # print(f"Final JSON response: {response}")
     return JsonResponse(response)
+
+def search_database(search_terms):
+    query = Q()
+    for term in search_terms:
+        query |= Q(title__icontains=term)
+    return Products.objects.filter(query)
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def search_platform_products(request):
+    """
+    在平台上搜索、爬虫，并将数据加入数据库后搜索数据库中的商品
+    :return:
+    """
+    response = {
+        "status": "ok",
+        "message": "",
+        "products": []
+    }
+    try:
+        # 获取请求数据
+        data = json.loads(request.body.decode('utf-8'))
+        search = data.get("search")
+        platform = data.get("platform")
+
+        # 检查必填字段
+        if not search or not platform:
+            response["status"] = "error"
+            response["message"] = "搜索关键词为空或未选择平台"
+            return JsonResponse(response)
+
+        # 根据平台爬取数据
+        if platform == '淘宝':
+            crawl_tb(search)  # 从淘宝搜索商品并加入数据库
+        elif platform == '京东':
+            crawl_jd(search)
+        else:
+            response["status"] = "error"
+            response["message"] = f"不支持的平台: {platform}"
+            return JsonResponse(response)
+
+        # 调用数据库搜索逻辑
+        products = search_database(jieba.lcut(search))
+
+        # 构建返回结果
+        for product in products:
+            response["products"].append({
+                "id": product.id,
+                "title": product.title,
+                "price": product.price,
+                "info": product.info,
+                "shop": product.shop,
+                "img": product.img,
+                "link": product.link,
+                "platform": product.platform
+            })
+
+        response["message"] = "爬取并搜索成功"
+
+    except Exception as e:
+        response["status"] = "error"
+        response["message"] = str(e)
+
+    return JsonResponse(response)
+
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -676,7 +730,7 @@ def send_user_email(request):
             f"{item.title}: {item.price} - {item.link}" for item in lowered_price_items
         ])
         subject = "您关注的商品已降价！"
-        message = f"亲爱的 {username},\n\n您关注的以下商品已降价：\n\n{items_info}\n\n快去抢购吧！"
+        message = f"亲爱的 {username},\n\n商品比价网站提醒您，您关注的以下商品已降价：\n\n{items_info}\n\n快去抢购吧！"
 
         # 发送邮件
         send_mail(
@@ -697,41 +751,6 @@ def send_user_email(request):
         return JsonResponse(response)
 
     except Exception as e:
-        response['status'] = 'error'
-        response['message'] = str(e)
-        return JsonResponse(response)
-
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def search_platform_products(request):
-    """
-    在平台上搜索、爬虫，并将数据加入数据库
-    :return:
-    """
-    response = {}
-    try:
-        data = json.loads(request.body.decode('utf-8'))
-        search = data.get("search")
-        platform = data.get("platform")
-
-        # 如果search为空，直接返回空结果
-        if not search or not platform:
-            response["status"] = "error"
-            response["message"] = "搜索关键词为空或未选择平台"
-            return JsonResponse(response)
-
-        if platform == '淘宝':
-            crawl_tb(search)
-        elif platform == '京东':
-            crawl_jd(search)
-
-        response["status"] = "success"
-        response["message"] = "爬取平台商品数据成功"
-        return JsonResponse(response)
-
-    except Exception as e:
-
         response['status'] = 'error'
         response['message'] = str(e)
         return JsonResponse(response)
