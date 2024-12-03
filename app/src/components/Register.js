@@ -6,7 +6,7 @@ import Avatar from '@mui/material/Avatar';
 import CssBaseline from '@mui/material/CssBaseline';
 import { useNavigate } from 'react-router-dom';
 import BgImg from '../img/bc2.png'
-import PIcon2 from "../img/picon2.png";
+import PIcon from "../img/Picon.png";
 import axios from "axios";
 import theme from './style'
 import {ThemeProvider } from '@mui/material/styles';
@@ -89,10 +89,10 @@ function Register() {
               alignItems: 'center',
             }}
           >
-            <Avatar sx={{ m: 1, bgcolor: 'secondary.main', width: 80, height: 80 }}>
-                <img src={PIcon2} alt="Login Icon" style={{ width: '100%', height: '100%' }} />
+            <Avatar sx={{ m: 1, bgcolor: 'transparent', width: 80, height: 80 }}>
+                <img src={PIcon} alt="Login Icon" style={{ width: '100%', height: '100%' }} />
               </Avatar>
-            <Typography component="h1" variant="h5">
+            <Typography component="h1" variant="h6">
               注册界面
             </Typography>
             <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>

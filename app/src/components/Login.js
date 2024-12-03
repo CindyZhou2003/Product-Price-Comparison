@@ -4,7 +4,7 @@ import { TextField, Button, Box, Typography, Container, Link } from '@mui/materi
 import Grid from '@mui/material/Grid2';
 import Avatar from '@mui/material/Avatar';
 import CssBaseline from '@mui/material/CssBaseline';
-import PIcon from '../img/picon2.png'
+import PIcon from '../img/Picon.png'
 import BgImg from '../img/bc.png'
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
@@ -71,6 +71,30 @@ function Login({ setIsAuthenticated }) {
             justifyContent: 'center',
           }}
         >
+        <Box
+            sx={{
+            position: 'relative', // 或 absolute
+            top: '-120px', // 向上移动
+            left: '150px', // 向右移动
+            display: 'inline-block',
+            background: 'linear-gradient(to right, purple, orange)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            // lineHeight: 2, // 设置行高，避免文字被截断
+            overflow: 'visible', // 确保内容可见
+            }}
+            >
+            <Typography
+              component="h1"
+              variant="h1"
+              sx={{
+                lineHeight: 2, // 设置文字的行高
+                // color: 'primary.main', // 使用主题的 primary 颜色
+              }}
+            >
+              Price Pilot
+            </Typography>
+        </Box>
           <Container component="main" maxWidth="xs">
             <CssBaseline />
             <Box
@@ -85,11 +109,11 @@ function Login({ setIsAuthenticated }) {
                 alignItems: 'center',
               }}
             >
-              <Avatar sx={{ m: 1, bgcolor: 'secondary.main', width: 120, height: 120 }}>
+              <Avatar sx={{ m: 1, bgcolor: 'transparent', width: 120, height: 120 }}>
                 <img src={PIcon} alt="Login Icon" style={{ width: '100%', height: '100%' }} />
               </Avatar>
               <Typography component="h1" variant="h4">
-                商品比价网站 PricePilot
+                商品比价网站
               </Typography>
               <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
                 <TextField

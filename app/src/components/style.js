@@ -20,16 +20,35 @@ const theme = createTheme({
   },
 
   typography: {
-    fontFamily: `'Noto Serif SC', serif`,
+    fontFamily: `'Noto Serif SC', serif`, // 默认字体
 
-    h5:{
-      fontFamily:`'ZCOOL XiaoWei',sans-serif`,
+    h1:{
+      fontFamily:'Perfect',
+      fontWeight:400,
+
+    },
+    h2:{
+      fontFamily:'Arizonia-Regular-OTF',
+    },
+    h3:{
+      fontFamily: `'Elrotex',serif`,
       fontWeight:400
     },
 
     h4:{
       fontFamily:`'Ma Shan Zheng', cursive`,
       fontWeight: 500,
+    },
+
+    h5:{
+      fontFamily:`'ZCOOL XiaoWei',sans-serif`,
+      fontWeight:400
+    },
+
+    h6:{
+      fontFamily:'TanukiMagic',
+      fontWeight:400,
+      fontSize:35,
     },
 
     body1:{
@@ -40,6 +59,12 @@ const theme = createTheme({
     body2:{
       fontFamily:`'Noto Serif SC', serif`,
       fontSize: '1rem'
+    },
+    subtitle1:{
+
+    },
+    subtitle2:{
+
     },
   },
 });

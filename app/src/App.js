@@ -1,5 +1,5 @@
 // App.js
-import './css/App.css';
+import './asserts/css/App.css';
 import Login from './components/Login';
 import Home from './components/Home';
 import {BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom';
