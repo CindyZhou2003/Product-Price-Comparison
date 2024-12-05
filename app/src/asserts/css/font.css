@@ -14,3 +14,7 @@
   font-family: TanukiMagic;
   src: url("../font/TanukiMagic.ttf");
 }
+@font-face {
+  font-family: 汉仪跳跳体简;
+  src: url("../font/汉仪跳跳体简.ttf");
+}

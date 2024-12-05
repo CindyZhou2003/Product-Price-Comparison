@@ -1,8 +1,19 @@
 // src/components/pages/Settings.js
 import React, { useState } from 'react';
-import { Typography, Box, Button, TextField, Divider, FormControlLabel, Switch } from '@mui/material';
+import {
+    Typography,
+    Box,
+    Button,
+    TextField,
+    Divider,
+    FormControlLabel,
+    Switch,
+    IconButton,
+    InputAdornment
+} from '@mui/material';
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { Visibility, VisibilityOff } from '@mui/icons-material';
 
 function Settings() {
   const navigate = useNavigate();
@@ -10,18 +21,18 @@ function Settings() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [emailNotifications, setEmailNotifications] = useState(true);
-  const [smsNotifications, setSmsNotifications] = useState(false);
   const userId = localStorage.getItem('user_id'); // 获取当前用户 ID
+  const [showPassword, setShowPassword] = useState(false); // 控制密码可见性
 
   const handlePasswordChange = async () => {
       // 在此处理更改密码逻辑，例如调用后端 API
-      if (newPassword === confirmPassword) {
-          alert('密码已更改！');
-      } else {
+      if (newPassword !== confirmPassword) {
           alert('新密码与确认密码不匹配');
+          return;
       }
       if (!newPassword || !oldPassword || !confirmPassword) {
           alert("请填写所有必填字段！")
+          return;
       }
       // 构建请求数据
       const requestData = {
@@ -38,8 +49,9 @@ function Settings() {
               },
           });
           // 处理响应结果
-          if (response.data.status === 'ok') {
+          if (response.data.status === 'success') {
               alert('修改密码成功！');
+              window.location.reload(); // 刷新当前页面
           } else {
               alert(`修改密码失败：${response.data.message}`);
           }
@@ -48,10 +60,33 @@ function Settings() {
           alert('修改密码失败，请稍后重试！');
       }
   };
-
-  const handleSavePreferences = () => {
+  const toggleShowPassword = () => {
+    setShowPassword(!showPassword);
+  };
+  const handleSavePreferences = async() => {
     // 在此处理保存偏好设置的逻辑，例如调用后端 API
-    alert('偏好设置已保存');
+      const requestData = {
+          user_id: userId,
+          state: emailNotifications,
+      }
+      try {
+          const response = await axios.post('http://127.0.0.1:8000/backend/change_email_service_state',
+              requestData, {
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+          });
+          // 处理响应结果
+          if (response.data.status === 'success') {
+              alert('偏好设置已保存');
+              // window.location.reload(); // 刷新当前页面
+          } else {
+              alert(`偏好设置保存失败：${response.data.message}`);
+          }
+      } catch (error) {
+          console.error('偏好设置更改请求失败:', error);
+          alert('偏好设置更改失败，请稍后重试！');
+      }
   };
 
   return (
@@ -73,29 +108,57 @@ function Settings() {
       <Box sx={{ maxWidth: 400, mb: 3 }}>
         <TextField
           label="旧密码"
-          type="password"
+          type={showPassword ? "text" : "password"}
           variant="outlined"
+          required
           fullWidth
           value={oldPassword}
           onChange={(e) => setOldPassword(e.target.value)}
+          helperText="请输入您之前的密码"
           sx={{ mb: 2 }}
+          slotProps={{
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={toggleShowPassword} edge="end">
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
+          }}
         />
         <TextField
           label="新密码"
-          type="password"
+          type={showPassword ? "text" : "password"}
           variant="outlined"
+          required
           fullWidth
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
+          helperText="新密码必须包含至少6个字符，字母和数字都要有"
           sx={{ mb: 2 }}
+          slotProps={{
+            input: {
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={toggleShowPassword} edge="end">
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            },
+          }}
         />
         <TextField
           label="确认新密码"
           type="password"
           variant="outlined"
+          required
           fullWidth
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
+          helperText="请重新输入新密码"
           sx={{ mb: 2 }}
         />
         <Button variant="contained" color="secondary" onClick={handlePasswordChange}>
@@ -115,15 +178,6 @@ function Settings() {
             />
           }
           label="电子邮件通知"
-        />
-        <FormControlLabel
-          control={
-            <Switch
-              checked={smsNotifications}
-              onChange={(e) => setSmsNotifications(e.target.checked)}
-            />
-          }
-          label="短信通知"
         />
         <Button variant="contained" color="secondary" onClick={handleSavePreferences}>
           保存偏好设置

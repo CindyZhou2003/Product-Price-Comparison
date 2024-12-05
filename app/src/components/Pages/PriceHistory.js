@@ -27,7 +27,7 @@ function PriceHistory() {
         },
       });
 
-      if (response.data.status === 'ok') {
+      if (response.data.status === 'success') {
         // 假设返回的数据中包含价格历史数据
         setPriceHistoryData(response.data.priceHistory);
         alert('查询成功！');

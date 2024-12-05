@@ -4,8 +4,8 @@ import { TextField, Button, Box, Typography, Container, Link } from '@mui/materi
 import Grid from '@mui/material/Grid2';
 import Avatar from '@mui/material/Avatar';
 import CssBaseline from '@mui/material/CssBaseline';
-import PIcon from '../img/Picon.png'
-import BgImg from '../img/bc.png'
+import PIcon from '../asserts/img/Picon.png'
+import BgImg from '../asserts/img/bc.png'
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
 import theme from './style'
@@ -35,7 +35,7 @@ function Login({ setIsAuthenticated }) {
       });
         console.log("Response received:", response);
 
-        if (response.data.status === 'ok') {
+        if (response.data.status === 'success') {
           // 登录成功，更新登录状态并跳转到主页
           const userId = response.data.user_id;
           console.log("User ID received:", userId);

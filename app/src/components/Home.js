@@ -1,6 +1,8 @@
 // Home.js
-import { AppBar, Toolbar, Typography, CssBaseline, Box, IconButton, Drawer, List, ListItem,
-    ListItemText, Divider, InputBase, Card, CardContent, CardMedia, Button , Tooltip} from '@mui/material';
+import {
+    AppBar, Toolbar, Typography, CssBaseline, Box, IconButton, Drawer, List, ListItem,
+    ListItemText, Divider, InputBase, Card, CardContent, CardMedia, Button, Tooltip, CircularProgress, Link
+} from '@mui/material';
 
 import Grid from '@mui/material/Grid2';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -10,22 +12,29 @@ import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import HistoryIcon from '@mui/icons-material/History';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { useState } from 'react';
 import {Outlet, useLocation, useNavigate} from "react-router-dom";
 import theme from './style';
 import { ThemeProvider } from '@mui/material/styles';
-import pic1 from '../img/pic1.jpg';
-import pic2 from '../img/pic2.jpg';
-import pic3 from '../img/pic3.jpg';
+import pic1 from '../asserts/img/pic1.jpg';
+import pic2 from '../asserts/img/pic2.jpg';
+import pic3 from '../asserts/img/pic3.jpg';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import HomeIcon from '@mui/icons-material/Home';
-
+import PIcon from "../asserts/img/Picon.png";
+import Avatar from "@mui/material/Avatar";
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import favorites from "./Pages/Favorites"; // 用于发送 HTTP 请求
+import handleFavoriteClick from "./Pages/ProductComparison"
 const drawerWidth = 240;
 
 function Home({ setIsAuthenticated }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation(); // Get the current route location
+  const [allProducts, setAllProducts] = useState([]); // 存储从后端获取的商品数据
+  const [loadingProducts, setLoadingProducts] = useState(false); // 控制加载状态
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -37,6 +46,24 @@ function Home({ setIsAuthenticated }) {
     navigate('/login');
 
   };
+    // 获取所有商品的函数
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const response = await axios.get("http://localhost:8000/backend/get_random_products");
+        if (response.data && response.data.products) {
+          setAllProducts(response.data.products); // 这里确保提取到的 products 是数组
+        } else {
+          console.error("Unexpected API response structure:", response.data);
+          setAllProducts([]); // 如果数据格式错误，设置为空数组
+        }
+      } catch (error) {
+        console.error("Error fetching products:", error);
+        setAllProducts([]); // 如果请求失败，设置为空数组
+      }
+    }
+    fetchProducts();
+  }, []);
 
  const menuItems = [
      { text: '主页', icon: <HomeIcon />, path: '/home' },
@@ -88,10 +115,19 @@ function Home({ setIsAuthenticated }) {
             >
               <MenuIcon />
             </IconButton>
-            <ShoppingCartIcon sx={{ display: { xs: 'none', md: 'flex' }, mr: 1.5}} fontSize="large"/>
-            <Typography variant="h4" noWrap component="div" sx={{ flexGrow: 1 }}>
-              商品比价网站 PricePilot
+              <Avatar sx={{ m: 1, bgcolor: 'transparent', width: 60, height: 60 }}>
+                <img src={PIcon} alt="Login Icon" style={{ width: '100%', height: '100%' }} />
+              </Avatar>
+            <Typography
+              variant="h4"
+              noWrap
+              component="div"
+              sx={{ flexGrow: 1 }}
+            >
+              <span style={{ fontFamily: `'Ma Shan Zheng', cursive` }}>商品比价网站</span>{' '}
+              <span style={{ fontFamily: `'Arizonia-Regular-OTF'`,fontWeight:600 }}>Price Pilot</span>
             </Typography>
+
             <Box sx={{ position: 'relative', display: 'flex' }}>
               <IconButton color="inherit">
                 <SearchIcon fontSize="large"/>
@@ -177,6 +213,7 @@ function Home({ setIsAuthenticated }) {
           {location.pathname === '/home' && (
             <>
               <Typography variant="h4" gutterBottom>
+                  <ShoppingCartIcon sx={{mr: 1.5}} fontSize="large"/>
                 欢迎来到商品比价网站！
               </Typography>
               <Typography variant="body1" gutterBottom>
@@ -250,6 +287,86 @@ function Home({ setIsAuthenticated }) {
                   </Card>
                 </Grid>
               </Grid>
+              <Box sx={{ width: '100%', mt: 6, mb: 2, textAlign: 'center' }}>
+                  <Typography
+                    variant="h4"
+                    component="div"
+                    sx={{
+                      fontWeight: 'bold',
+                      textAlign: 'center',
+                      borderBottom: '2px solid #ddd',
+                      width: 'fit-content',
+                      mx: 'auto',
+                      px: 2,
+                    }}
+                  >
+                    每日推荐
+                  </Typography>
+                </Box>
+                  {/* 商品展示部分 */}
+             <Grid container spacing={3} justifyContent="center">
+                  {loadingProducts ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                    <CircularProgress />
+                  </Box>
+                ) : (
+                  allProducts.map((product, index) => (
+                    <Grid item key={index} size={{ xs: 2, sm: 4, md: 3 }}>
+                      <Card sx={{ height: 460, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                        <CardMedia
+                          component="img"
+                          sx={{ width: 180, height: 180, objectFit: 'contain', mx: 'auto', mt: 2 }}
+                          image={product.img}
+                          alt={product.title}
+                        />
+                        <CardContent>
+                          <Tooltip title={product.title} arrow>
+                            <Typography
+                              gutterBottom
+                              variant="h6"
+                              component="div"
+                              sx={{
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,      // 限制文本行数为 2 行
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden',      // 隐藏溢出部分
+                                textOverflow: 'ellipsis',// 使用省略号表示溢出
+                                whiteSpace: 'normal',    // 允许换行
+                              }}
+                            >
+                              {product.title}
+                            </Typography>
+                          </Tooltip>
+                          <Typography variant="body2" color="text.secondary">
+                            价格: {product.price}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            店铺: {product.shop}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            平台: {product.platform}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            信息: {product.info}
+                          </Typography>
+                        </CardContent>
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', pl: 2, pb: 2 }}>
+                          <Link href={product.link} target="_blank" rel="noopener" underline="hover" sx={{ mr: 2 }}>
+                            查看详情
+                          </Link>
+                          <IconButton onClick={() => handleFavoriteClick(product.id)}>
+                            {favorites[product.id] ? (
+                              <FavoriteIcon color="error" />
+                            ) : (
+                              <FavoriteBorderIcon />
+                            )}
+                          </IconButton>
+                        </Box>
+                      </Card>
+                    </Grid>
+                  ))
+                )}
+             </Grid>
             </>
           )}
         </Box>

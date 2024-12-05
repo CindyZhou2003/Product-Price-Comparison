@@ -57,6 +57,10 @@ class Account(AbstractBaseUser):
     def is_staff(self):
         return self.is_admin
 
+    def change_email_state(self,state):
+        self.email_active = state
+        self.save()
+
 
 class Products(models.Model):
     id = models.AutoField(primary_key=True)

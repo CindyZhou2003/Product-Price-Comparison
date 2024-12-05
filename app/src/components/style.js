@@ -46,9 +46,8 @@ const theme = createTheme({
     },
 
     h6:{
-      fontFamily:'TanukiMagic',
+      fontFamily:'汉仪跳跳体简',
       fontWeight:400,
-      fontSize:35,
     },
 
     body1:{

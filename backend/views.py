@@ -48,7 +48,7 @@ def login(request):
         if user is not None:
             # 用户名和密码正确，将用户标记为已登录状态
             auth_login(request, user)
-            response['status'] = 'ok'
+            response['status'] = 'success'
             response['message'] = 'Login Successfully.'
             response['user_id'] = user.id  # 返回用户ID以便前端使用
         else:
@@ -140,7 +140,7 @@ def register(request):
         user.save()
 
         # 8. 返回成功信息
-        response['status'] = 'ok'
+        response['status'] = 'success'
         response['message'] = 'Registration successful.'
         response['user_id'] = user.id  # 返回创建用户的ID
 
@@ -173,14 +173,14 @@ def change_password(request):
         if not user_id or not old_password or not new_password:
             response['status'] = 'error'
             response['message'] = 'User id, old password, and new password are required.'
-            return JsonResponse(response, status=400)
+            return JsonResponse(response)
 
         # Retrieve user and check old password
         user = Account.objects.get(id=user_id)
         if not check_password(old_password, user.password):
             response['status'] = 'error'
             response['message'] = 'Old password is incorrect.'
-            return JsonResponse(response, status=400)
+            return JsonResponse(response)
 
         # Set and save the new password
         if not re.match(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$', new_password):
@@ -191,22 +191,22 @@ def change_password(request):
         user.set_password(new_password)
         user.save()
 
-        response['status'] = 'ok'
+        response['status'] = 'success'
         response['message'] = 'Password changed successfully.'
-        return JsonResponse(response, status=200)
+        return JsonResponse(response)
 
     except Account.DoesNotExist:
         response['status'] = 'error'
         response['message'] = 'User does not exist.'
-        return JsonResponse(response, status=404)
+        return JsonResponse(response)
     except json.JSONDecodeError:
         response['status'] = 'error'
         response['message'] = 'Invalid JSON format.'
-        return JsonResponse(response, status=400)
+        return JsonResponse(response)
     except Exception as e:
         response['status'] = 'error'
         response['message'] = str(e)
-        return JsonResponse(response, status=500)
+        return JsonResponse(response)
 
 def identify_platform(url):
     """
@@ -360,7 +360,7 @@ def update_and_show_price(request):
             })
 
         # 返回给前端的数据
-        response['status'] = 'ok'
+        response['status'] = 'success'
         response['message'] = '更新并显示商品价格成功。'
         response['priceHistory'] = price_history_list  # 将历史价格数据返回给前端
 
@@ -372,16 +372,21 @@ def update_and_show_price(request):
 
 @csrf_exempt
 @require_http_methods(["GET"])
-def get_all_products(request):
+def get_random_products(request):
     """
     展示数据库中所有商品
     :param request:
     :return:
     """
-    response = {}
+    response = {
+        "status": "success",
+        "message": "Search successful.",
+        "products": []  # 确保初始化 products 为空列表
+    }
     try:
         # 获取请求中的数据
-        products = Products.objects.filter()
+        all_products = Products.objects.all()
+        products = random.sample(list(all_products), 100)
         for product in products:
             response["products"].append({
                 "id": product.id,
@@ -401,6 +406,8 @@ def get_all_products(request):
         response["status"] = "error"
         response["message"] = str(e)
 
+    return JsonResponse(response)
+
 
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -411,7 +418,7 @@ def search_products(request):
     :return:
     """
     response = {
-        "status": "ok",
+        "status": "success",
         "message": "Search successful.",
         "products": []  # 确保初始化 products 为空列表
     }
@@ -473,7 +480,7 @@ def search_platform_products(request):
     :return:
     """
     response = {
-        "status": "ok",
+        "status": "success",
         "message": "",
         "products": []
     }
@@ -548,7 +555,7 @@ def like(request):
         user_like = Likes(user_id=user, product=product)
         user_like.save()
 
-        response['status'] = 'ok'
+        response['status'] = 'success'
         response['message'] = 'Like product successful'
 
     except Exception as e:
@@ -579,7 +586,7 @@ def unlike(request):
 
         if user_like:
             user_like.delete()  # 如果存在记录，则删除，表示取消关注
-            response['status'] = 'ok'
+            response['status'] = 'success'
             response['message'] = 'Unlike product successful.'
         else:
             response['status'] = 'error'
@@ -618,7 +625,7 @@ def get_favorites(request):
             'link': favorite.product.link,
         } for favorite in favorites]
 
-        response['status'] = 'ok'
+        response['status'] = 'success'
         response['favorites'] = product_list
 
     except Exception as e:
@@ -755,3 +762,30 @@ def send_user_email(request):
         response['message'] = str(e)
         return JsonResponse(response)
 
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def change_email_service_state(request):
+    """
+    更改是否发送邮件状态
+    :param request: 
+    :return: 
+    """
+    response = {}
+    try:
+    # 获取请求数据
+        data = json.loads(request.body.decode('utf-8'))
+        user_id = data.get('user_id')
+        state = data.get('state')
+        # 获取用户信息
+        user = Account.objects.get(id=user_id)
+        user.change_email_state(state)
+        response['status'] = 'success'
+        response['message'] = 'Change Email Service State successfully.'
+    
+    except Exception as e:
+        response['status'] = 'error'
+        response['message'] = str(e)
+        
+    return JsonResponse(response)

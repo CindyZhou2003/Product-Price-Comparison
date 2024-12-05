@@ -20,7 +20,7 @@ function Favorites() {
           params: { user_id: userId },
         });
 
-        if (response.data.status === 'ok') {
+        if (response.data.status === 'success') {
           setFavorites(response.data.favorites);
         } else {
           alert(`获取关注列表失败：${response.data.message}`);

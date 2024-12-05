@@ -13,7 +13,6 @@ INTO TABLE products
 FIELDS TERMINATED BY ',' 
 ENCLOSED BY '"' 
 LINES TERMINATED BY '\n'
-LINES TERMINATED BY '\n'
 IGNORE 1 LINES
 (title, price, comments, shop, img, link);
 
