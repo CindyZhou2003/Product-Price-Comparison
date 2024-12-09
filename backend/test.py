@@ -15,14 +15,18 @@ from django.utils.timezone import localtime
 # url = "http://127.0.0.1:8000/backend/update_and_show_price"
 # url = "http://127.0.0.1:8000/backend/update_and_show_price"
 # url = "http://127.0.0.1:8000/backend/send_user_email"
-url = "http://127.0.0.1:8000/backend/search_platform_products"
+# url = "http://127.0.0.1:8000/backend/search_platform_products"
+url = "http://127.0.0.1:8000/backend/verify_code"
 # params = {
 #     "search":"https://detail.tmall.com/item.htm?priceTId=2147820017308929924073442e0193&utparam=%7B%22aplus_abtest%22%3A%22147faa88590dd67ced21724be9d95a99%22%7D&id=737835268170&ns=1&abbucket=11&xxc=taobaoSearch&skuId=5361326104000",
 # }
 payload = {
     # "user_id":"2"
-    "search":"围巾",
-    "platform":"淘宝"
+    # "search":"围巾",
+    # "platform":"淘宝",
+    "email": "cindyzhou2003@outlook.com",
+    "verification_code": "274343",
+
 }
 # Send a POST request to the server
 response = requests.post(url, json=payload)

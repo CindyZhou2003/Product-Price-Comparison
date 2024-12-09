@@ -5,6 +5,7 @@ import Home from './components/Home';
 import {BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import Register from "./components/Register";
+import ForgotPassword from "./components/ForgotPassword";
 import Favorites from "./components/Pages/Favorites";
 import Settings from "./components/Pages/Settings";
 import PriceHistory from "./components/Pages/PriceHistory";
@@ -31,6 +32,7 @@ function App() {
         <Route path="/home" element={isAuthenticated ?
             <Home setIsAuthenticated={setIsAuthenticated} /> : <Navigate to="/login" />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot_password" element={<ForgotPassword />} />
         {/* Login page with state update */}
         <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
         {/* Default route */}

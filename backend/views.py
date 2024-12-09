@@ -1,6 +1,7 @@
 import json
 import logging
 import requests
+from django.core import mail
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from backend.models import *
@@ -12,6 +13,7 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth.hashers import check_password
+from django.contrib.auth.decorators import login_required
 import re
 from DrissionPage import ChromiumPage
 from DrissionPage.errors import ElementNotFoundError
@@ -22,8 +24,102 @@ from selenium.webdriver.support.ui import WebDriverWait
 from pyquery import PyQuery as pq
 import time
 from django.core.mail import send_mail
-
 from catch.crawler import crawl_tb, crawl_jd
+import string
+from django.core.cache import cache
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def send_verification_code(request):
+    """
+    发送验证码到用户邮箱，验证码5分钟内有效
+    :param request: POST请求，包含用户邮箱
+    :return: JsonResponse
+    """
+    response = {}
+
+    try:
+        # 获取请求数据
+        data = json.loads(request.body.decode('utf-8'))
+        user_email = data.get('email')
+
+        if not user_email:
+            response['status'] = 'error'
+            response['message'] = '请提供邮箱地址'
+            return JsonResponse(response)
+
+        # 生成6位数字验证码
+        verification_code = ''.join(random.choices(string.digits, k=6))
+
+        # 将验证码存入缓存，设置过期时间为5分钟
+        cache.set(user_email, verification_code, timeout=300)  # 5分钟过期
+
+        # 准备邮件内容
+        subject = "您的注册验证码"
+        message = f"亲爱的用户，\n\n您的注册验证码是：{verification_code}\n\n验证码有效时间为5分钟，请及时使用。"
+
+        # 发送邮件
+        send_mail(
+            subject,
+            message,
+            'cindyzhou6418@gmail.com',  # 替换为发件人地址
+            [user_email],
+            fail_silently=False,
+        )
+
+        response['status'] = 'success'
+        response['message'] = '验证码已发送到您的邮箱'
+
+    except Exception as e:
+        response['status'] = 'error'
+        response['message'] = str(e)
+
+    return JsonResponse(response)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def verify_code(request):
+    """
+    验证用户输入的验证码是否正确，并检查是否在有效时间内
+    :param request: POST请求，包含用户邮箱和验证码
+    :return: JsonResponse
+    """
+    response = {}
+
+    try:
+        # 获取请求数据
+        data = json.loads(request.body.decode('utf-8'))
+        user_email = data.get('email')
+        user_code = data.get('verification_code')
+
+        if not user_email or not user_code:
+            response['status'] = 'error'
+            response['message'] = '请提供邮箱和验证码'
+            return JsonResponse(response)
+
+        # 从缓存中获取验证码
+        stored_code = cache.get(user_email)
+
+        if not stored_code:
+            response['status'] = 'error'
+            response['message'] = '验证码已过期或无效，请重新获取'
+            return JsonResponse(response)
+
+        # 校验验证码是否正确
+        if stored_code == user_code:
+            response['status'] = 'success'
+            response['message'] = '验证码验证成功'
+        else:
+            response['status'] = 'error'
+            response['message'] = '验证码错误'
+
+    except Exception as e:
+        response['status'] = 'error'
+        response['message'] = str(e)
+
+    return JsonResponse(response)
+
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -207,6 +303,98 @@ def change_password(request):
         response['status'] = 'error'
         response['message'] = str(e)
         return JsonResponse(response)
+
+@csrf_exempt
+def reset_password(request):
+    """
+    处理密码重置请求
+    :param request: POST 请求，包含 email 和新密码
+    :return: JsonResponse
+    """
+    response = {}
+
+    try:
+        # 解析请求数据
+        data = json.loads(request.body.decode('utf-8'))
+        email = data.get('email')
+        new_password = data.get('password')
+
+        if not email or not new_password:
+            response['status'] = 'error'
+            response['message'] = 'Email and password are required.'
+            return JsonResponse(response)
+
+        # 查找用户
+        try:
+            user = Account.objects.get(email=email)
+        except Account.DoesNotExist:
+            response['status'] = 'error'
+            response['message'] = 'User does not exist.'
+            return JsonResponse(response, status=404)
+
+        # 更新用户密码
+        user.password = make_password(new_password)
+        user.save()
+        response['status'] = 'success'
+        response['message'] = 'Password changed successfully.'
+        return JsonResponse(response, status=200)
+
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+
+from django.contrib.auth.hashers import check_password
+from django.http import JsonResponse
+from .models import Account  # 确保与实际路径一致
+
+
+def reset_email(request):
+    """
+    通过密码重置邮箱
+    :param request: user_id, email, password
+    :return: JsonResponse
+    """
+    response = {}
+    if request.method != "POST":
+        response["error"] = "请求方法错误，仅支持 POST。"
+        return JsonResponse(response, status=400)
+
+    # 获取请求数据
+    user_id = request.POST.get("user_id")
+    new_email = request.POST.get("email")
+    password = request.POST.get("password")
+
+    if not all([user_id, new_email, password]):
+        response["error"] = "参数不完整。需要 user_id, email 和 password。"
+        return JsonResponse(response, status=400)
+
+    try:
+        # 查找用户
+        user = Account.objects.get(id=user_id)
+    except Account.DoesNotExist:
+        response["error"] = "用户不存在。"
+        return JsonResponse(response, status=404)
+
+    # 验证密码
+    if not check_password(password, user.password):
+        response["error"] = "密码错误。"
+        return JsonResponse(response, status=403)
+
+    # 验证新邮箱是否已被使用
+    if Account.objects.filter(email=new_email).exists():
+        response["error"] = "该邮箱已被绑定到其他账户。"
+        return JsonResponse(response, status=409)
+
+    # 更新邮箱
+    user.email = new_email
+    user.save()
+
+    response["message"] = "邮箱更新成功。"
+    return JsonResponse(response, status=200)
+
 
 def identify_platform(url):
     """
@@ -739,29 +927,30 @@ def send_user_email(request):
         subject = "您关注的商品已降价！"
         message = f"亲爱的 {username},\n\n商品比价网站提醒您，您关注的以下商品已降价：\n\n{items_info}\n\n快去抢购吧！"
 
+        connection = mail.get_connection()  # Use default email connection
         # 发送邮件
-        send_mail(
+        connection.open()
+        email= mail.EmailMessage(
             subject,
             message,
             'CindyZhou6418@gmail.com',  # 替换为发件人地址
             [user_email],
-            fail_silently=False,
         )
+        email.send()
+        connection.close()
 
         response['status'] = 'success'
         response['message'] = f"已向用户 {username} 发送降价通知"
-        return JsonResponse(response)
 
     except Account.DoesNotExist:
         response['status'] = 'error'
         response['message'] = "用户不存在"
-        return JsonResponse(response)
 
     except Exception as e:
         response['status'] = 'error'
         response['message'] = str(e)
-        return JsonResponse(response)
 
+    return JsonResponse(response)
 
 
 @csrf_exempt
@@ -788,4 +977,28 @@ def change_email_service_state(request):
         response['status'] = 'error'
         response['message'] = str(e)
         
+    return JsonResponse(response)
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_user_info(request):
+    response = {}
+    try:
+        user_id = request.GET.get('user_id')  # 从查询参数中获取 user_id
+        if not user_id:
+            raise ValueError("user_id is required")
+
+        user = Account.objects.get(id=user_id)
+        response['status'] = 'success'
+        response['message'] = 'Get User Info successfully.'
+        response['username'] = user.username
+        response['email'] = user.email
+
+    except Account.DoesNotExist:
+        response['status'] = 'error'
+        response['message'] = 'User not found.'
+    except Exception as e:
+        response['status'] = 'error'
+        response['message'] = str(e)
+
     return JsonResponse(response)

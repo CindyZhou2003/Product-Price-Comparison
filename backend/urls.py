@@ -6,7 +6,12 @@ urlpatterns = [
 # http://127.0.0.1:8000/backend/login?email=12345@163.com&password=sf12343
     path('register', views.register),# 注册
     path('login', views.login), # 登录
+
     path('change_password', views.change_password), # 修改密码
+    path('reset_password',views.reset_password), # 通过邮箱重置密码
+    path('reset_email',views.reset_email),# 通过密码重置邮箱
+    path('send_verification_code',views.send_verification_code), # 发送验证码
+    path('verify_code',views.verify_code), # 检验验证码
 
     path('get_random_products', views.get_random_products), # 展示数据库所有商品
     path('search_products', views.search_products), # 搜索数据库中商品
@@ -19,6 +24,6 @@ urlpatterns = [
     path('search_platform_products',views.search_platform_products), # 平台搜索（爬虫）商品加入数据库
     path('send_user_email',views.send_user_email), # 发送降价邮件提醒
 
-    path('change_email_service_state',views.change_email_service_state),
-
+    path('change_email_service_state',views.change_email_service_state), # 用户是否想要发送降价提醒
+    path('get_user_info',views.get_user_info), # 获取用户名
 ]

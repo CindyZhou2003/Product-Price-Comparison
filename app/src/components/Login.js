@@ -152,7 +152,7 @@ function Login({ setIsAuthenticated }) {
                 </Button>
                 <Grid container>
                   <Grid item xs>
-                    <Link href="#" variant="body2">
+                    <Link href="#" variant="body2" onClick={() => navigate('/forgot_password')}>
                       {"忘记密码?"}
                     </Link>
                   </Grid>

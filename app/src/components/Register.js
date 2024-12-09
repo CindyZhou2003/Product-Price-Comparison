@@ -2,11 +2,9 @@
 import React, { useState } from 'react';
 import {TextField, Button, Box, Typography, Container, Link, InputAdornment, IconButton} from '@mui/material';
 import Grid from '@mui/material/Grid2';
-// import Avatar from '@mui/material/Avatar';
 import CssBaseline from '@mui/material/CssBaseline';
 import { useNavigate } from 'react-router-dom';
 import BgImg from '../asserts/img/bc2.png'
-// import PIcon from "../img/Picon.png";
 import axios from "axios";
 import theme from './style'
 import {ThemeProvider } from '@mui/material/styles';
@@ -19,6 +17,9 @@ function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false); // 控制密码可见性
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isCodeSent, setIsCodeSent] = useState(false); // 是否已发送验证码
+  const [codeCountdown, setCodeCountdown] = useState(0); // 倒计时
 
   // 注册提交处理函数
   const handleSubmit = async (event) => {
@@ -29,36 +30,72 @@ function Register() {
       return;
     }
     // 检查表单字段是否为空
-    if (!username || !email || !password) {
-      alert("请填写所有必填字段！");
+    if (!username || !email || !password || !verificationCode) {
+      alert("请填写所有必填字段并输入验证码！");
       return;
     }
 
-    // 构建请求数据
-    const requestData = {
-      username: username,
-      email: email,
-      password: password,
-    };
-
-    // 使用axios发送POST请求到后端注册接口
     try {
-      const response = await axios.post('http://127.0.0.1:8000/backend/register', requestData, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      // 发送请求验证验证码
+      const verifyResponse = await axios.post('http://127.0.0.1:8000/backend/verify_code', {
+        email,
+        verification_code: verificationCode,
       });
 
-      // 处理响应结果
-      if (response.data.status === 'success') {
+      if (verifyResponse.data.status !== 'success') {
+        alert(`验证码错误：${verifyResponse.data.message}`);
+        return;
+      }
+
+      // 验证成功后发送注册请求
+      const registerResponse = await axios.post('http://127.0.0.1:8000/backend/register', {
+        username,
+        email,
+        password,
+      });
+
+      if (registerResponse.data.status === 'success') {
         alert('注册成功！');
-        navigate('/login');  // 注册成功后跳转到登录页面
+        navigate('/login'); // 注册成功后跳转到登录页面
       } else {
-        alert(`注册失败：${response.data.message}`);
+        alert(`注册失败：${registerResponse.data.message}`);
       }
     } catch (error) {
       console.error('注册请求失败:', error);
       alert('注册失败，请稍后重试！');
+    }
+  };
+
+  // 发送验证码
+  const sendVerificationCode = async () => {
+    if (!email) {
+      alert("请先填写邮箱地址！");
+      return;
+    }
+    if (isCodeSent) return; // 防止重复发送
+
+    try {
+      const response = await axios.post('http://127.0.0.1:8000/backend/send_verification_code', { email });
+      if (response.data.status === 'success') {
+        alert('验证码已发送到您的邮箱！');
+        setIsCodeSent(true);
+        setCodeCountdown(60); // 开启倒计时
+        const interval = setInterval(() => {
+          setCodeCountdown((prev) => {
+            if (prev === 1) {
+              clearInterval(interval);
+              setIsCodeSent(false);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      } else {
+        alert(`发送验证码失败：${response.data.message}`);
+      }
+    } catch (error) {
+      console.error('发送验证码失败:', error);
+      alert('发送验证码失败，请稍后重试！');
     }
   };
 
@@ -118,14 +155,15 @@ function Register() {
               flexDirection: 'column',
               alignItems: 'center',
             }}
+            width={460}
           >
             {/*<Avatar sx={{ m: 1, bgcolor: 'transparent', width: 80, height: 80 }}>*/}
             {/*    <img src={PIcon} alt="Login Icon" style={{ width: '100%', height: '100%' }} />*/}
             {/*  </Avatar>*/}
-            <Typography component="h1" variant="h6">
-              注册界面
+            <Typography component="h1" variant="h5">
+              注册
             </Typography>
-            <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
+            <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }} width={400}>
               <TextField
                 variant="outlined"
                 margin="normal"
@@ -139,18 +177,44 @@ function Register() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2, // 设置控件之间的间距
+                  mt: 2,
+                }}
+              >
+                <TextField
+                  variant="outlined"
+                  required
+                  fullWidth
+                  id="email"
+                  label="请输入邮件地址"
+                  name="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  helperText="我们不会将您的邮件泄露给其他人"
+                />
+                <Button
+                  onClick={sendVerificationCode}
+                  disabled={isCodeSent}
+                  variant="contained"
+                >
+                  {isCodeSent ? `重新发送 (${codeCountdown}s)` : '发送验证码'}
+                </Button>
+              </Box>
               <TextField
                 variant="outlined"
                 margin="normal"
                 required
                 fullWidth
-                id="email"
-                label="请输入邮件地址"
-                name="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                helperText="我们不会将您的邮件泄露给其他人"
+                id="verificationCode"
+                label="请输入验证码"
+                name="verificationCode"
+                value={verificationCode}
+                onChange={(e) => setVerificationCode(e.target.value)}
               />
               <TextField
                 variant="outlined"

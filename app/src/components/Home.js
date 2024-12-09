@@ -7,7 +7,7 @@ import {
 import Grid from '@mui/material/Grid2';
 import MenuIcon from '@mui/icons-material/Menu';
 import SearchIcon from '@mui/icons-material/Search';
-import AccountCircle from '@mui/icons-material/AccountCircle';
+import LogoutIcon from '@mui/icons-material/Logout';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import HistoryIcon from '@mui/icons-material/History';
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -146,7 +146,7 @@ function Home({ setIsAuthenticated }) {
                 aria-label="account of current user"
                 onClick={handleLogout}
               >
-                <AccountCircle fontSize="large" />
+                <LogoutIcon fontSize="large" />
               </IconButton>
             </Tooltip>
           </Toolbar>
@@ -209,7 +209,7 @@ function Home({ setIsAuthenticated }) {
           }}
         >
             <Outlet />
-             {/* Only show these elements when on the /home path */}
+         {/* Only show these elements when on the /home path */}
           {location.pathname === '/home' && (
             <>
               <Typography variant="h4" gutterBottom>

@@ -41,8 +41,9 @@ const theme = createTheme({
     },
 
     h5:{
-      fontFamily:`'ZCOOL XiaoWei',sans-serif`,
-      fontWeight:400
+      fontFamily:`汉仪跳跳体简`,
+      fontWeight:400,
+      fontSize:36,
     },
 
     h6:{
