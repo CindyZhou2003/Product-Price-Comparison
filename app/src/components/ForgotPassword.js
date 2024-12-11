@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import theme from "./style";
 import BgImg from "../asserts/img/bc2.png";
+import MobileBgImg from '../asserts/img/phonebc.png'
 import {ThemeProvider } from '@mui/material/styles';
 import Grid from "@mui/material/Grid2";
 
@@ -106,7 +107,10 @@ function ForgotPassword() {
      <ThemeProvider theme={theme}>
         <Box
           sx={{
-            backgroundImage: `url(${BgImg})`,
+            backgroundImage: {
+              xs: `url(${MobileBgImg})`, // 手机端背景图片
+              md: `url(${BgImg})` // 桌面端背景图片
+            },
             backgroundRepeat: 'no-repeat',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
@@ -115,19 +119,22 @@ function ForgotPassword() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            flexDirection: { xs: 'column', md: 'row' },
+            padding: 2, // 添加内边距以适应小屏幕
           }}
         >
         <Box
             sx={{
             position: 'relative', // 或 absolute
-            top: '120px', // 向下移动
-            left: '150px', // 向右移动
+            top: { xs: '0px', sm: '-120px' }, // 小屏幕时调整位置
+            left: { xs: '0px', sm: '150px' },
             display: 'inline-block',
             background: 'linear-gradient(to right, purple, orange)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             // lineHeight: 2, // 设置行高，避免文字被截断
             overflow: 'visible', // 确保内容可见
+            marginBottom: { xs: 4, md: 0 },
             }}
             >
             <Typography
@@ -136,12 +143,13 @@ function ForgotPassword() {
               sx={{
                 lineHeight: 2, // 设置文字的行高
                 // color: 'primary.main', // 使用主题的 primary 颜色
+                fontSize: { xs: '2rem', sm: '3rem', md: '4rem' },
               }}
             >
               Price Pilot
             </Typography>
         </Box>
-        <Container component="main" maxWidth="xs">
+        <Container component="main" maxWidth="xs" sx={{ padding: { xs: 2, sm: 4 } }}>
           <CssBaseline />
           <Box
             sx={{
@@ -154,7 +162,6 @@ function ForgotPassword() {
               flexDirection: 'column',
               alignItems: 'center',
             }}
-            width={460}
           >
             <Typography component="h1" variant="h5">
               忘记密码

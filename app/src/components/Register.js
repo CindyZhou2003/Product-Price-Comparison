@@ -5,6 +5,7 @@ import Grid from '@mui/material/Grid2';
 import CssBaseline from '@mui/material/CssBaseline';
 import { useNavigate } from 'react-router-dom';
 import BgImg from '../asserts/img/bc2.png'
+import MobileBgImg from '../asserts/img/phonebc.png'
 import axios from "axios";
 import theme from './style'
 import {ThemeProvider } from '@mui/material/styles';
@@ -107,7 +108,10 @@ function Register() {
       <ThemeProvider theme={theme}>
         <Box
           sx={{
-            backgroundImage: `url(${BgImg})`,
+            backgroundImage: {
+              xs: `url(${MobileBgImg})`, // 手机端背景图片
+              md: `url(${BgImg})` // 桌面端背景图片
+            },
             backgroundRepeat: 'no-repeat',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
@@ -116,19 +120,23 @@ function Register() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            flexDirection: { xs: 'column', md: 'row' }, // 改为列布局在小屏幕，行布局在大屏幕
+            padding: 2, // 添加内边距以适应小屏幕
           }}
         >
         <Box
             sx={{
             position: 'relative', // 或 absolute
-            top: '120px', // 向下移动
-            left: '150px', // 向右移动
+            top: { xs: '0px', sm: '-120px' }, // 小屏幕时调整位置
+            left: { xs: '0px', sm: '150px' },
+            textAlign: 'center', // 小屏幕居中
             display: 'inline-block',
             background: 'linear-gradient(to right, purple, orange)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             // lineHeight: 2, // 设置行高，避免文字被截断
             overflow: 'visible', // 确保内容可见
+            marginBottom: { xs: 4, md: 0 }, // 小屏幕标题与输入框之间增加间距
             }}
             >
             <Typography
@@ -137,12 +145,13 @@ function Register() {
               sx={{
                 lineHeight: 2, // 设置文字的行高
                 // color: 'primary.main', // 使用主题的 primary 颜色
+                fontSize: { xs: '2rem', sm: '3rem', md: '4rem' }, // 响应式字号
               }}
             >
               Price Pilot
             </Typography>
         </Box>
-        <Container component="main" maxWidth="xs">
+        <Container component="main" maxWidth="xs" sx={{ padding: { xs: 2, sm: 4 } }}>
           <CssBaseline />
           <Box
             sx={{
@@ -155,7 +164,6 @@ function Register() {
               flexDirection: 'column',
               alignItems: 'center',
             }}
-            width={460}
           >
             {/*<Avatar sx={{ m: 1, bgcolor: 'transparent', width: 80, height: 80 }}>*/}
             {/*    <img src={PIcon} alt="Login Icon" style={{ width: '100%', height: '100%' }} />*/}
@@ -163,7 +171,7 @@ function Register() {
             <Typography component="h1" variant="h5">
               注册
             </Typography>
-            <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }} width={400}>
+            <Box component="form" onSubmit={handleSubmit} noValidate sx={{ mt: 1 }}>
               <TextField
                 variant="outlined"
                 margin="normal"

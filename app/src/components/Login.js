@@ -6,6 +6,7 @@ import Avatar from '@mui/material/Avatar';
 import CssBaseline from '@mui/material/CssBaseline';
 import PIcon from '../asserts/img/Picon.png'
 import BgImg from '../asserts/img/bc.png'
+import MobileBgImg from '../asserts/img/phonebc.png'
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
 import theme from './style'
@@ -60,28 +61,35 @@ function Login({ setIsAuthenticated }) {
       <ThemeProvider theme={theme}>
         <Box
           sx={{
-            backgroundImage: `url(${BgImg})`,
+            backgroundImage: {
+              xs: `url(${MobileBgImg})`, // 手机端背景图片
+              md: `url(${BgImg})` // 桌面端背景图片
+            },
             backgroundRepeat: 'no-repeat',
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             width: '100vw',
             minHeight: '100vh',
             display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' }, // 改为列布局在小屏幕，行布局在大屏幕
             alignItems: 'center',
             justifyContent: 'center',
+            padding: 2, // 添加内边距以适应小屏幕
           }}
         >
         <Box
             sx={{
             position: 'relative', // 或 absolute
-            top: '-120px', // 向上移动
-            left: '150px', // 向右移动
+            top: { xs: '0px', sm: '-120px' }, // 小屏幕时调整位置
+            left: { xs: '0px', sm: '150px' },
+            textAlign: 'center', // 小屏幕居中
             display: 'inline-block',
             background: 'linear-gradient(to right, purple, orange)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             // lineHeight: 2, // 设置行高，避免文字被截断
             overflow: 'visible', // 确保内容可见
+            marginBottom: { xs: 4, md: 0 }, // 小屏幕标题与输入框之间增加间距
             }}
             >
             <Typography
@@ -90,12 +98,13 @@ function Login({ setIsAuthenticated }) {
               sx={{
                 lineHeight: 2, // 设置文字的行高
                 // color: 'primary.main', // 使用主题的 primary 颜色
+                  fontSize: { xs: '2rem', sm: '3rem', md: '4rem' }, // 响应式字号
               }}
             >
               Price Pilot
             </Typography>
         </Box>
-          <Container component="main" maxWidth="xs">
+          <Container component="main" maxWidth="xs" sx={{ padding: { xs: 2, sm: 4 } }}>
             <CssBaseline />
             <Box
               sx={{
@@ -150,14 +159,14 @@ function Login({ setIsAuthenticated }) {
                 >
                   登录
                 </Button>
-                <Grid container>
-                  <Grid item xs>
-                    <Link href="#" variant="body2" onClick={() => navigate('/forgot_password')}>
+                <Grid container sx={{ mt: 2 }} justifyContent="space-between">
+                  <Grid item xs={6} sx={{ textAlign: 'left' }}>
+                    <Link href="#" variant="body2" onClick={() => navigate('/forgot_password')} sx={{ fontSize: { xs: '0.8rem', sm: '0.9rem' } }}>
                       {"忘记密码?"}
                     </Link>
                   </Grid>
-                  <Grid item offset={{ md: 'auto' }}>
-                    <Link href="#" variant="body2" onClick={() => navigate('/register')}>
+                  <Grid item xs={6} sx={{ textAlign: 'right' }}>
+                    <Link href="#" variant="body2" onClick={() => navigate('/register')} sx={{ fontSize: { xs: '0.8rem', sm: '0.9rem' } }}>
                       {"还没有账号？注册新账号"}
                     </Link>
                   </Grid>
