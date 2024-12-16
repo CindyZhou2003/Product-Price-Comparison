@@ -61,6 +61,12 @@ class Account(AbstractBaseUser):
         self.email_active = state
         self.save()
 
+class Categories(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=100, null=False)  # 品类名称
+    parent = models.ForeignKey(
+        'self', null=True, blank=True, on_delete=models.CASCADE, related_name='subcategories'
+    )  # 指向上一级品类
 
 class Products(models.Model):
     id = models.AutoField(primary_key=True)
@@ -71,6 +77,9 @@ class Products(models.Model):
     img = models.CharField(max_length=350, null=False)  # 商品图片 URL
     link = models.CharField(max_length=300, unique=True, null=False)  # 商品购买链接
     platform = models.CharField(max_length=20, null=False)  # 电商平台
+    category = models.ForeignKey(
+        Categories, null=True, blank=True, on_delete=models.SET_NULL, related_name='products'
+    )  # 指向品类表
 
     def __str__(self):
         return self.title

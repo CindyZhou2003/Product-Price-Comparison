@@ -15,6 +15,8 @@ urlpatterns = [
 
     path('get_random_products', views.get_random_products), # 展示数据库所有商品
     path('search_products', views.search_products), # 搜索数据库中商品
+    path('search_through_categories',views.search_through_categories), # 根据分类搜索商品
+    path('get_categories',views.get_categories), # 得到分类树
     path('update_and_show_price',views.update_and_show_price), # 更新单个商品价格
 
     path('like', views.like), # 关注商品

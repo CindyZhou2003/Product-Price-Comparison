@@ -17,6 +17,7 @@ from django.contrib.auth.decorators import login_required
 import re
 from DrissionPage import ChromiumPage
 from DrissionPage.errors import ElementNotFoundError
+
 logging.basicConfig(level=logging.DEBUG)  # 设置最低日志级别为 DEBUG
 import random
 from selenium import webdriver
@@ -1002,3 +1003,68 @@ def get_user_info(request):
         response['message'] = str(e)
 
     return JsonResponse(response)
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def search_through_categories(request):
+    """
+    根据分类，在数据中搜索商品，并返回商品列表
+    :param request: categories (GET 参数)
+    :return: JsonResponse
+    """
+    try:
+        # 获取分类参数
+        category_id = request.GET.get("category", None)
+        if category_id is None:
+            return JsonResponse({"error": "Missing 'category' parameter"}, status=400)
+
+        # 查询分类下的商品
+        products = Products.objects.filter(category_id=category_id).values(
+            "id", "title", "price", "shop", "img", "link","platform", "info",
+        )
+
+        # 如果没有找到商品
+        if not products.exists():
+            return JsonResponse({"message": "No products found for the given category"}, status=404)
+
+        # 构造响应数据
+        response = {
+            "category_id": category_id,
+            "products": list(products),
+        }
+        return JsonResponse(response, safe=False)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+def get_category_tree(parent=None):
+    """
+    递归构建分类树
+    :param parent: 当前父级分类（或 None 表示顶级分类）
+    :return: 分类树列表
+    """
+    categories = Categories.objects.filter(parent=parent).order_by('name')  # 按名称排序
+    category_tree = []
+
+    for category in categories:
+        category_tree.append({
+            "id": category.id,
+            "name": category.name,
+            "subcategories": get_category_tree(category)  # 递归获取子分类
+        })
+
+    return category_tree
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_categories(request):
+    """
+    获取分类树的 API
+    """
+    try:
+        category_tree = get_category_tree()  # 获取顶级分类开始的分类树
+        return JsonResponse({"categories": category_tree}, status=200)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

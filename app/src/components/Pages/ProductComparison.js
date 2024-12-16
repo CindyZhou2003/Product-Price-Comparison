@@ -245,11 +245,15 @@ function ProductComparison() {
         ) :searchQuery.trim() && paginatedProducts.length > 0 ? (
             <>
           {paginatedProducts.map((product, index) => (
-            <Grid item key={index} size={{ xs: 2, sm: 4, md: 3 }}>
-              <Card sx={{ height: 460, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <Grid item key={index} size={{xs:6, // 手机两列
+                          sm:4,// 小屏展示三列
+                          md:3, // 中屏展示四列
+                          lg:2.4, // 大屏展示五列
+                          }}>
+              <Card sx={{ height: 410, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                 <CardMedia
                   component="img"
-                  sx={{ width: 180, height: 180, objectFit: 'contain', mx: 'auto', mt: 2 }}
+                  sx={{ width: 150, height: 150, objectFit: 'contain', mx: 'auto', mt: 2 }}
                   image={product.img}
                   alt={product.title}
                 />
@@ -274,9 +278,18 @@ function ProductComparison() {
                   <Typography variant="body2" color="text.secondary">
                     价格: {product.price}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    店铺: {product.shop}
-                  </Typography>
+                  <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{
+                        display: 'block',       // 必须使用 block 或 inline-block
+                        overflow: 'hidden',     // 隐藏溢出的文本
+                        textOverflow: 'ellipsis', // 使用省略号表示溢出
+                        whiteSpace: 'nowrap',   // 禁止换行
+                      }}
+                    >
+                      店铺: {product.shop}
+                    </Typography>
                   <Typography variant="body2" color="text.secondary">
                     平台: {product.platform}
                   </Typography>
@@ -284,8 +297,8 @@ function ProductComparison() {
                     信息: {product.info}
                   </Typography>
                 </CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', pl: 2, pb: 2 }}>
-                  <Link href={product.link} target="_blank" rel="noopener" underline="hover" sx={{ mr: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', pl: 2, pb: 4 }}>
+                  <Link href={product.link} target="_blank" rel="noopener" underline="hover" sx={{ mr: 1 }}>
                     查看详情
                   </Link>
                   <IconButton onClick={() => handleFavoriteClick(product.id)}>

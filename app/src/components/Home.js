@@ -1,9 +1,10 @@
 // Home.js
 import {
     AppBar, Toolbar, Typography, CssBaseline, Box, IconButton, Drawer, List, ListItem,
-    ListItemText, Divider, InputBase, Card, CardContent, CardMedia, Button, Tooltip, CircularProgress, Link
+    ListItemText, Divider, InputBase, Card, CardContent, CardMedia, Button, Tooltip,
+    CircularProgress, Link, Hidden
 } from '@mui/material';
-
+import { SimpleTreeView, TreeItem } from '@mui/x-tree-view';
 import Grid from '@mui/material/Grid2';
 import MenuIcon from '@mui/icons-material/Menu';
 import SearchIcon from '@mui/icons-material/Search';
@@ -23,10 +24,10 @@ import HomeIcon from '@mui/icons-material/Home';
 import PIcon from "../asserts/img/Picon.png";
 import Avatar from "@mui/material/Avatar";
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import favorites from "./Pages/Favorites"; // 用于发送 HTTP 请求
-import handleFavoriteClick from "./Pages/ProductComparison"
+import handleFavoriteClick from "./Pages/ProductComparison";
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 const drawerWidth = 240;
 
 function Home({ setIsAuthenticated }) {
@@ -35,7 +36,10 @@ function Home({ setIsAuthenticated }) {
   const location = useLocation(); // Get the current route location
   const [allProducts, setAllProducts] = useState([]); // 存储从后端获取的商品数据
   const [loadingProducts, setLoadingProducts] = useState(false); // 控制加载状态
-
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [favorites, setFavorites] = useState({}); // 商品收藏状态
+  const [drawerOpen, setDrawerOpen] = useState(false); // 控制分类树抽屉
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
@@ -46,24 +50,32 @@ function Home({ setIsAuthenticated }) {
     navigate('/login');
 
   };
-    // 获取所有商品的函数
+  // 获取分类树
   useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const response = await axios.get("http://localhost:8000/backend/get_random_products");
-        if (response.data && response.data.products) {
-          setAllProducts(response.data.products); // 这里确保提取到的 products 是数组
-        } else {
-          console.error("Unexpected API response structure:", response.data);
-          setAllProducts([]); // 如果数据格式错误，设置为空数组
-        }
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        setAllProducts([]); // 如果请求失败，设置为空数组
-      }
-    }
-    fetchProducts();
+    fetch('http://localhost:8000/backend/get_categories') // 替换为你的分类接口
+      .then((response) => response.json())
+      .then((data) => {
+        setCategories(data.categories); // 假设返回的 JSON 包含 categories 列表
+      })
+      .catch((err) => console.error('获取分类失败', err));
   }, []);
+
+    const fetchProducts = (categoryId) => {
+    setLoadingProducts(true);
+    fetch(`http://localhost:8000/backend/search_through_categories?category=${categoryId}`) // 替换为你的商品接口
+      .then((response) => response.json())
+      .then((data) => {
+        setAllProducts(data.products || []);
+      })
+      .catch((err) => console.error('获取商品失败', err))
+      .finally(() => setLoadingProducts(false));
+  };
+
+  // 点击分类时处理
+  const handleCategoryClick = (categoryId) => {
+    setSelectedCategory(categoryId);
+    fetchProducts(categoryId);
+  };
 
  const menuItems = [
      { text: '主页', icon: <HomeIcon />, path: '/home' },
@@ -90,6 +102,19 @@ function Home({ setIsAuthenticated }) {
       </List>
     </div>
   );
+
+  // 渲染分类树
+  const renderCategoryTree = (categories) =>
+    categories.map((category) => (
+      <TreeItem
+        key={category.id}
+        nodeId={String(category.id)}
+        label={category.name}
+        onClick={() => handleCategoryClick(category.id)}
+       itemId={category.id}>
+        {category.subcategories && renderCategoryTree(category.subcategories)}
+      </TreeItem>
+    ));
 
   return (
     <ThemeProvider theme={theme}>
@@ -300,10 +325,45 @@ function Home({ setIsAuthenticated }) {
                       px: 2,
                     }}
                   >
-                    每日推荐
+                    分类查询
                   </Typography>
                 </Box>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 4 }}>
+            {/* 分类树抽屉 */}
+              <Drawer
+                anchor="right"
+                open={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+              >
+                <Box sx={{ width: 250, p: 2 }}>
+                  <Typography variant="h6" gutterBottom>
+                    分类浏览
+                  </Typography>
+                  <SimpleTreeView
+                    defaultCollapseIcon={<ExpandMoreIcon />}
+                    defaultExpandIcon={<ChevronRightIcon />}
+                    onNodeSelect={handleCategoryClick}
+                  >
+                    {renderCategoryTree(categories)}
+                  </SimpleTreeView>
+                </Box>
+              </Drawer>
+
                   {/* 商品展示部分 */}
+            <Box sx={{ width: '100%', flex:1}}>
+                <Button
+                  variant="outlined"
+                  startIcon={<MenuIcon />}
+                  onClick={() => setDrawerOpen(true)}
+                  sx={{ mb: 2 }}
+                >
+                  分类浏览
+                </Button>
+            {selectedCategory && (
+              <Typography variant="h6" gutterBottom>
+                当前分类: {selectedCategory}
+              </Typography>
+            )}
              <Grid container spacing={3} justifyContent="center">
                   {loadingProducts ? (
                   <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
@@ -311,11 +371,16 @@ function Home({ setIsAuthenticated }) {
                   </Box>
                 ) : (
                   allProducts.map((product, index) => (
-                    <Grid item key={index} size={{ xs: 2, sm: 4, md: 3 }}>
-                      <Card sx={{ height: 460, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                    <Grid item key={index} size={{xs:6, // 手机两列
+                          sm:4,// 小屏展示三列
+                          md:3, // 中屏展示四列
+                          lg:2.4, // 大屏展示五列
+                          }}
+                        >
+                    <Card sx={{ height: 410, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                         <CardMedia
                           component="img"
-                          sx={{ width: 180, height: 180, objectFit: 'contain', mx: 'auto', mt: 2 }}
+                          sx={{ width: 150, height: 150, objectFit: 'contain', mx: 'auto', mt: 2 }}
                           image={product.img}
                           alt={product.title}
                         />
@@ -340,9 +405,18 @@ function Home({ setIsAuthenticated }) {
                           <Typography variant="body2" color="text.secondary">
                             价格: {product.price}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            店铺: {product.shop}
-                          </Typography>
+                          <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{
+                                display: 'block',       // 必须使用 block 或 inline-block
+                                overflow: 'hidden',     // 隐藏溢出的文本
+                                textOverflow: 'ellipsis', // 使用省略号表示溢出
+                                whiteSpace: 'nowrap',   // 禁止换行
+                              }}
+                            >
+                              店铺: {product.shop}
+                            </Typography>
                           <Typography variant="body2" color="text.secondary">
                             平台: {product.platform}
                           </Typography>
@@ -350,8 +424,8 @@ function Home({ setIsAuthenticated }) {
                             信息: {product.info}
                           </Typography>
                         </CardContent>
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', pl: 2, pb: 2 }}>
-                          <Link href={product.link} target="_blank" rel="noopener" underline="hover" sx={{ mr: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', pl: 2, pb: 4 }}>
+                          <Link href={product.link} target="_blank" rel="noopener" underline="hover" sx={{ mr: 1 }}>
                             查看详情
                           </Link>
                           <IconButton onClick={() => handleFavoriteClick(product.id)}>
@@ -367,9 +441,12 @@ function Home({ setIsAuthenticated }) {
                   ))
                 )}
              </Grid>
+            </Box>
+            </Box>
+
             </>
           )}
-        </Box>
+          </Box>
       </Box>
     </ThemeProvider>
   );
