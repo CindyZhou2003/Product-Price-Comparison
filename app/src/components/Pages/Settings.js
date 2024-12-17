@@ -1,15 +1,8 @@
 // src/components/pages/Settings.js
 import React, {useEffect, useState} from 'react';
 import {
-    Typography,
-    Box,
-    Button,
-    TextField,
-    Divider,
-    FormControlLabel,
-    Switch,
-    IconButton,
-    InputAdornment
+    Typography, Box, Button, TextField, Divider, FormControlLabel, Switch, IconButton, InputAdornment,
+    Snackbar, Alert
 } from '@mui/material';
 import { useNavigate } from "react-router-dom";
 import Grid from '@mui/material/Grid2';
@@ -30,16 +23,27 @@ function Settings() {
   const [isCodeSent, setIsCodeSent] = useState(false); // 是否已发送验证码
   const [codeCountdown, setCodeCountdown] = useState(0); // 倒计时
   const [verificationCode, setVerificationCode] = useState('');
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: '' });
 
+  // 打开 Snackbar
+  const handleSnackbarOpen = (message, severity) => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  // 关闭 Snackbar
+  const handleSnackbarClose = () => {
+    setSnackbar({ open: false, message: '', severity: '' });
+  };
 
   const handlePasswordChange = async () => {
       // 在此处理更改密码逻辑，例如调用后端 API
       if (newPassword !== confirmPassword) {
-          alert('新密码与确认密码不匹配');
+          // alert('新密码与确认密码不匹配');
+          handleSnackbarOpen(`新密码与确认密码不匹配`, 'warning');
           return;
       }
       if (!newPassword || !oldPassword || !confirmPassword) {
-          alert("请填写所有必填字段！")
+          handleSnackbarOpen(`请填写所有必填字段！`, 'warning');
           return;
       }
       // 构建请求数据
@@ -58,14 +62,14 @@ function Settings() {
           });
           // 处理响应结果
           if (response.data.status === 'success') {
-              alert('修改密码成功！');
+              handleSnackbarOpen(`修改密码成功！`, 'success');
               window.location.reload(); // 刷新当前页面
           } else {
-              alert(`修改密码失败：${response.data.message}`);
+              handleSnackbarOpen(`修改密码失败：${response.data.message}`, 'error');
           }
       } catch (error) {
           console.error('修改密码请求失败:', error);
-          alert('修改密码失败，请稍后重试！');
+          handleSnackbarOpen(`修改密码失败，请稍后重试！`, 'error');
       }
   };
   const toggleShowPassword = () => {
@@ -86,14 +90,14 @@ function Settings() {
           });
           // 处理响应结果
           if (response.data.status === 'success') {
-              alert('偏好设置已保存');
+              handleSnackbarOpen(`偏好设置已保存`, 'success');
               // window.location.reload(); // 刷新当前页面
           } else {
-              alert(`偏好设置保存失败：${response.data.message}`);
+              handleSnackbarOpen(`偏好设置保存失败：${response.data.message}`, 'error');
           }
       } catch (error) {
           console.error('偏好设置更改请求失败:', error);
-          alert('偏好设置更改失败，请稍后重试！');
+          handleSnackbarOpen('偏好设置更改失败，请稍后重试！', 'error');
       }
   };
 
@@ -106,7 +110,7 @@ function Settings() {
       });
 
       if (verifyResponse.data.status !== 'success') {
-        alert(`验证码错误：${verifyResponse.data.message}`);
+        handleSnackbarOpen(`验证码错误：${verifyResponse.data.message}`, 'error');
         return;
       }
 
@@ -117,20 +121,21 @@ function Settings() {
       });
 
       if (response.data.status === 'success') {
-        alert('修改邮箱成功！');
+        handleSnackbarOpen(`修改密码成功！`, 'success');
         window.location.reload(); // 刷新当前页面
       } else {
-        alert(`修改邮箱失败：${response.data.message}`);
+        handleSnackbarOpen(`修改邮箱失败：${response.data.message}`, 'error');
       }
     } catch (error) {
       console.error('修改邮箱请求失败:', error);
-      alert('修改邮箱失败，请稍后重试！');
+      handleSnackbarOpen(`修改邮箱失败，请稍后重试！`, 'error');
+      alert('');
     }
   };
 
   const sendVerificationCode = async () => {
     if (!userInfo.email) {
-      alert("请先填写邮箱地址！");
+      handleSnackbarOpen(`请先填写邮箱地址！`, 'warning');
       return;
     }
     if (isCodeSent) return; // 防止重复发送
@@ -139,7 +144,7 @@ function Settings() {
       const response = await axios.post('http://127.0.0.1:8000/backend/send_verification_code',
           { email: userInfo.email });
       if (response.data.status === 'success') {
-        alert('验证码已发送到您的邮箱！');
+        handleSnackbarOpen(`验证码已发送到您的邮箱，请注意查收`, 'info');
         setIsCodeSent(true);
         setCodeCountdown(60); // 开启倒计时
         const interval = setInterval(() => {
@@ -153,11 +158,11 @@ function Settings() {
           });
         }, 1000);
       } else {
-        alert(`发送验证码失败：${response.data.message}`);
+        handleSnackbarOpen(`发送验证码失败：${response.data.message}`, 'error');
       }
     } catch (error) {
       console.error('发送验证码失败:', error);
-      alert('发送验证码失败，请稍后重试！');
+      handleSnackbarOpen(`发送验证码失败，请稍后重试！`, 'error');
     }
   };
 
@@ -169,20 +174,24 @@ function Settings() {
             {params: { user_id: userId }});
         if (response.data.status === 'success') {
           setUserInfo({ username: response.data.username, email:response.data.email });
+          handleSnackbarOpen(`获取用户信息成功`, 'success');
         } else {
           console.error("Unexpected API response structure:", response.data);
-          alert(`'Failed to fetch user info'：${response.data.message}`);
+          handleSnackbarOpen(`获取用户信息失败：${response.data.message}`, 'error');
         }
       } catch (error) {
         console.error("Error fetching user info:", error);
+        handleSnackbarOpen(`获取用户信息失败！`, 'error');
       }
     }
     getUserInfo();
   }, []);
 
   return (
+<div>
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2,
+      }}>
         <Typography variant="h4" gutterBottom>
           设置
         </Typography>
@@ -348,6 +357,17 @@ function Settings() {
         </Button>
       </Box>
     </Box>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000} // 3秒后自动关闭
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }} // 提示位置
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </div>
   );
 }
 

@@ -12,22 +12,14 @@ from django.contrib.auth import authenticate, login as auth_login
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.contrib.auth.hashers import make_password
-from django.contrib.auth.hashers import check_password
-from django.contrib.auth.decorators import login_required
 import re
-from DrissionPage import ChromiumPage
-from DrissionPage.errors import ElementNotFoundError
-
 logging.basicConfig(level=logging.DEBUG)  # 设置最低日志级别为 DEBUG
 import random
-from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-from pyquery import PyQuery as pq
-import time
 from django.core.mail import send_mail
-from catch.crawler import crawl_tb, crawl_jd
+from catch.crawler import crawl_tb, crawl_jd,tb_update_price, jd_update_price
 import string
 from django.core.cache import cache
+from django.contrib.auth.hashers import check_password
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -347,11 +339,8 @@ def reset_password(request):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
-from django.contrib.auth.hashers import check_password
-from django.http import JsonResponse
-from .models import Account  # 确保与实际路径一致
-
-
+@csrf_exempt
+@require_http_methods(["POST"])
 def reset_email(request):
     """
     通过密码重置邮箱
@@ -425,81 +414,6 @@ def identify_platform(url):
 
     return platform
 
-def tb_update_price(good,url):
-    options = webdriver.ChromeOptions()
-    options.add_experimental_option("excludeSwitches", ['enable-automation'])
-    driver = webdriver.Chrome(options=options)
-
-    try:
-        # 反爬机制
-        driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument",
-                               {"source": """Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"""})
-        driver.get(url)
-        driver.maximize_window()
-        wait = WebDriverWait(driver, 10)
-        # 手动扫码登录
-        # input("请在浏览器中扫码登录，完成后按回车继续...")
-        time.sleep(10)
-        time.sleep(random.uniform(3, 5))  # 额外等待时间，确保 JavaScript 内容加载完成
-
-        # 获取页面 HTML 源代码
-        html = driver.page_source
-        doc = pq(html)
-
-        current_price = doc('div.originPrice--UnZ18wCd .priceText--gdYzG_l_').eq(0).text()
-        # current_price = doc('div.extraPrice--Y7SiNGXT .priceText--gdYzG_l_.extraPriceText--aysuZjG_').text()
-
-        if current_price:
-            good.modify_price(current_price)
-            good.save()
-        else:
-            # 尝试获取单一价格
-            current_price = doc('div.highlightPrice--OOP9oDP8 .text--fZ9NUhyQ').eq(0).text()
-            if current_price:
-                good.modify_price(current_price)
-                good.save()
-            else:
-                print("未找到任何价格信息")
-        print("current price:", current_price)
-        # 将价格加入历史价格表
-        product_new_price = Prices(product=good, price=current_price)
-        product_new_price.save()
-    except ElementNotFoundError:
-        print("Error: Unable to find the price element on the page.")
-    # 关闭浏览器
-    finally:
-        driver.quit()
-
-def jd_update_price(good,url):
-    driver = ChromiumPage()
-    try:
-        # Open the specified URL
-        driver.get(url)
-        time.sleep(random.uniform(2, 5))  # Simulate a human interaction delay
-        time.sleep(10) # 手动登录
-        print("Successfully loaded the product page, fetching the price...")
-
-        # Locate and fetch the price element on the page
-        price_float = float(driver.ele('css:.price').text)
-        if price_float:
-            print(f"Current Product Price:{price_float}")
-        else:
-            price = driver.ele('css:.p-price').text
-            price_cleaned = price.replace('￥', '').strip()
-            # 转换为 float 类型
-            price_float = float(price_cleaned)
-            print(f"Current Product Price: {price_float}")
-
-        good.modify_price(price_float)
-        good.save()
-        # 将价格加入历史价格表
-        product_new_price = Prices(product=good, price=price_float)
-        product_new_price.save()
-
-    except ElementNotFoundError:
-        print("Error: Unable to find the price element on the page.")
-    finally:
-        driver.quit()  # Ensure the browser closes after the task
 
 @csrf_exempt
 @require_http_methods(["GET"])
@@ -561,39 +475,27 @@ def update_and_show_price(request):
 
 @csrf_exempt
 @require_http_methods(["GET"])
-def get_random_products(request):
-    """
-    展示数据库中所有商品
-    :param request:
-    :return:
-    """
-    response = {
-        "status": "success",
-        "message": "Search successful.",
-        "products": []  # 确保初始化 products 为空列表
-    }
+def show_price(request):
+    response = {}
     try:
-        # 获取请求中的数据
-        all_products = Products.objects.all()
-        products = random.sample(list(all_products), 100)
-        for product in products:
-            response["products"].append({
-                "id": product.id,
-                "title": product.title,
-                "price": product.price,
-                "info": product.info,
-                "shop": product.shop,
-                "img": product.img,
-                "link": product.link,
-                "platform": product.platform
+        product_id = request.GET.get("id")
+        good = Products.objects.get(id=product_id)
+        price_history = Prices.objects.filter(product=good).order_by('created_at')
+        price_history_list = []
+        for entry in price_history:
+            price_history_list.append({
+                'date': entry.created_at.strftime('%Y-%m-%d'),  # 转换日期格式
+                'price': entry.price
             })
 
-    except json.JSONDecodeError:
-        response["status"] = "error"
-        response["message"] = "Invalid JSON format"
+        # 返回给前端的数据
+        response['status'] = 'success'
+        response['message'] = '显示商品价格成功'
+        response['priceHistory'] = price_history_list  # 将历史价格数据返回给前端
+
     except Exception as e:
-        response["status"] = "error"
-        response["message"] = str(e)
+        response['status'] = 'error'
+        response['message'] = str(e)
 
     return JsonResponse(response)
 

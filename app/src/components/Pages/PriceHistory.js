@@ -1,10 +1,10 @@
 // src/components/pages/PriceHistory.js
 import React, { useState } from 'react';
-import { Typography, Box, Button, TextField } from '@mui/material';
+import { Typography, Box, Button, TextField, Snackbar, Alert } from '@mui/material';
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Line } from 'react-chartjs-2';  // 导入 Line 图表
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend} from 'chart.js';
 
 // 注册Chart.js所需的组件
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -14,6 +14,17 @@ function PriceHistory() {
   const [searchQuery, setSearchQuery] = useState('');
   const [priceHistoryData, setPriceHistoryData] = useState(null); // 用于存储价格历史数据
   const [loading, setLoading] = useState(false);  // 显示加载状态
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: '' });
+
+  // 打开 Snackbar
+  const handleSnackbarOpen = (message, severity) => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  // 关闭 Snackbar
+  const handleSnackbarClose = () => {
+    setSnackbar({ open: false, message: '', severity: '' });
+  };
 
   const handleSearch = async (event) => {
     event.preventDefault();
@@ -29,35 +40,35 @@ function PriceHistory() {
 
       if (response.data.status === 'success') {
         // 假设返回的数据中包含价格历史数据
-        setPriceHistoryData(response.data.priceHistory);
-        alert('查询成功！');
+        const { priceHistory } = response.data;
+
+        setPriceHistoryData({
+          labels: priceHistory.map(entry => entry.date),
+          datasets: [
+            {
+              label: '价格 (元)',
+              data: priceHistory.map(entry => entry.price),
+              borderColor: 'rgba(75, 192, 192, 1)',
+              backgroundColor: 'rgba(75, 192, 192, 0.2)',
+              borderWidth: 4,
+              pointRadius: 4,
+              pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+              pointBorderWidth: 4,
+              tension: 0.4,
+            },
+          ],
+        });
+
+        handleSnackbarOpen(`查询成功！`, 'success');
       } else {
-        alert(`查询失败：${response.data.message}`);
+        handleSnackbarOpen(`查询失败：${response.data.message}`, 'error');
       }
     } catch (error) {
       console.error('查询失败:', error);
-      alert('查询失败，请稍后重试！');
+      handleSnackbarOpen(`查询失败，请稍后重试！`, 'error');
     } finally {
       setLoading(false);  // 无论成功还是失败，关闭加载状态
     }
-  };
-
-  // 准备图表数据
-  const chartData = {
-    labels: priceHistoryData ? priceHistoryData.map(item => item.date) : [],
-    datasets: [
-      {
-        label: '商品价格',
-        data: priceHistoryData ? priceHistoryData.map(item => item.price) : [],
-        borderColor: 'rgba(75, 192, 192, 1)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        borderWidth: 4, // 调整线条宽度
-        pointRadius: 4, // 调整数据点的半径
-        pointBackgroundColor: 'rgba(75, 192, 192, 1)', // 数据点颜色
-        pointBorderWidth: 4, // 数据点边框宽度
-        tension: 0.4, // 增加曲线的平滑度
-      },
-    ],
   };
 
   const chartOptions = {
@@ -101,13 +112,15 @@ function PriceHistory() {
 
 
   return (
+    <div>
     <Box>
       {/* 包含标题和按钮的行容器 */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Typography variant="h4" gutterBottom>
           历史价格
         </Typography>
-        <Button variant="contained" color="primary" onClick={() => navigate('/home')}>
+        <Button variant="contained" color="primary" onClick={() => navigate('/home')}
+          sx={{xs: 10, sm: 15, lg:18}}>
           返回首页
         </Button>
       </Box>
@@ -126,7 +139,8 @@ function PriceHistory() {
           onChange={(e) => setSearchQuery(e.target.value)}
           sx={{ mr: 2 }}
         />
-        <Button variant="contained" color="primary" onClick={handleSearch} disabled={loading}>
+        <Button variant="contained" color="primary" onClick={handleSearch} disabled={loading}
+        >
           {loading ? '查询中...' : '搜索'}
         </Button>
       </Box>
@@ -145,11 +159,22 @@ function PriceHistory() {
         <Box sx={{ width: '80%', height: 400 }}> {/* 图表容器 */}
           <Typography variant="h6" gutterBottom>
           </Typography>
-          <Line data={chartData} options={chartOptions} />
+          <Line data={priceHistoryData} options={chartOptions} />
         </Box>
       </Box>
     )}
     </Box>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000} // 3秒后自动关闭
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }} // 提示位置
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+  </div>
   );
 }
 

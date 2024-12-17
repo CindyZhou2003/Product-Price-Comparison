@@ -1,3 +1,7 @@
+UPDATE backend_products
+SET platform = REPLACE(REPLACE(platform, '\n', ''), '\r', '')
+WHERE platform LIKE '%\n%' OR platform LIKE '%\r%';
+
 CREATE TABLE products (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255),

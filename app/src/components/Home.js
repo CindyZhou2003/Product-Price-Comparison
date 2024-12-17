@@ -1,13 +1,12 @@
 // Home.js
 import {
     AppBar, Toolbar, Typography, CssBaseline, Box, IconButton, Drawer, List, ListItem,
-    ListItemText, Divider, InputBase, Card, CardContent, CardMedia, Button, Tooltip,
-    CircularProgress, Link, Hidden
+    ListItemText, Divider, Card, CardContent, CardMedia, Button, Tooltip,
+    CircularProgress, Link, Snackbar, Alert
 } from '@mui/material';
 import { SimpleTreeView, TreeItem } from '@mui/x-tree-view';
 import Grid from '@mui/material/Grid2';
 import MenuIcon from '@mui/icons-material/Menu';
-import SearchIcon from '@mui/icons-material/Search';
 import LogoutIcon from '@mui/icons-material/Logout';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import HistoryIcon from '@mui/icons-material/History';
@@ -25,11 +24,11 @@ import PIcon from "../asserts/img/Picon.png";
 import Avatar from "@mui/material/Avatar";
 import React, { useEffect, useState } from 'react';
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
-import handleFavoriteClick from "./Pages/ProductComparison";
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import axios from "axios";
 const drawerWidth = 240;
-
+const phonedrawerWidth = 180;
 function Home({ setIsAuthenticated }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();
@@ -40,6 +39,18 @@ function Home({ setIsAuthenticated }) {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [favorites, setFavorites] = useState({}); // 商品收藏状态
   const [drawerOpen, setDrawerOpen] = useState(false); // 控制分类树抽屉
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: '' });
+
+  // 打开 Snackbar
+  const handleSnackbarOpen = (message, severity) => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  // 关闭 Snackbar
+  const handleSnackbarClose = () => {
+    setSnackbar({ open: false, message: '', severity: '' });
+  };
+
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
@@ -65,9 +76,13 @@ function Home({ setIsAuthenticated }) {
     fetch(`http://localhost:8000/backend/search_through_categories?category=${categoryId}`) // 替换为你的商品接口
       .then((response) => response.json())
       .then((data) => {
+        handleSnackbarOpen(`获取分类商品成功`, 'success');
         setAllProducts(data.products || []);
       })
-      .catch((err) => console.error('获取商品失败', err))
+      .catch((err) => {
+          console.error('获取商品失败', err);
+          handleSnackbarOpen(`获取分类商品失败！`, 'error');
+      })
       .finally(() => setLoadingProducts(false));
   };
 
@@ -78,7 +93,7 @@ function Home({ setIsAuthenticated }) {
   };
 
  const menuItems = [
-     { text: '主页', icon: <HomeIcon />, path: '/home' },
+    { text: '主页', icon: <HomeIcon />, path: '/home' },
     { text: '商品比价', icon: <CompareArrowsIcon />, path: '/home/product-comparison' },
     { text: '历史价格', icon: <HistoryIcon />, path: '/home/price-history' },
     { text: '关注', icon: <FavoriteIcon />, path: '/home/favorites' },
@@ -91,7 +106,9 @@ function Home({ setIsAuthenticated }) {
       <Divider />
       <List>
         {menuItems.map((item) => (
-          <ListItem button key={item.text} onClick={() => navigate(item.path)}>
+          <ListItem button key={item.text} onClick={() => navigate(item.path)}
+            sx={{xs: '1.1rem', sm: '1.5rem', lg:'2.5rem'}}
+          >
             <IconButton color="inherit">
               {item.icon}
             </IconButton>
@@ -116,7 +133,44 @@ function Home({ setIsAuthenticated }) {
       </TreeItem>
     ));
 
+  //关注函数
+  const handleFavoriteClick = async (productId) => {
+    const userId = localStorage.getItem('user_id');  // 从 localStorage 获取 user_id
+    // 判断当前商品是否已被关注
+    const isLiked = favorites[productId];
+    try {
+      // 根据当前状态决定请求类型：喜欢或者取消喜欢
+      const url = isLiked ? 'http://127.0.0.1:8000/backend/unlike' : 'http://127.0.0.1:8000/backend/like';
+      const response = await axios.post(url, {
+        id: productId,   // 商品 ID
+        user_id: userId  // 用户 ID
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (response.data.status === 'success') {
+        if (isLiked) {
+          handleSnackbarOpen(`取消关注成功！`, 'success');
+        } else {
+          handleSnackbarOpen(`关注成功！`, 'success');
+        }
+        // 更新本地的状态，切换商品的关注状态
+        setFavorites((prev) => ({
+          ...prev,
+          [productId]: !isLiked  // 切换状态：如果已喜欢则取消，未喜欢则添加
+        }));
+      } else {
+        handleSnackbarOpen(`操作失败：${response.data.message}`, 'error');
+      }
+    } catch (error) {
+      console.error('操作请求失败:', error);
+      handleSnackbarOpen(`操作失败，请稍后重试！`, 'error');
+    }
+  };
+
   return (
+  <div>
     <ThemeProvider theme={theme}>
       <Box sx={{ display: 'flex' }}>
         <CssBaseline />
@@ -127,55 +181,67 @@ function Home({ setIsAuthenticated }) {
           sx={{
             width: { sm: `calc(100% - ${drawerWidth}px)` },
             ml: { sm: `${drawerWidth}px` },
-            bgcolor: 'primary'
+            bgcolor: 'primary.main',
           }}
         >
-          <Toolbar>
+          <Toolbar sx={{ minHeight: { xs: 50, sm: 64 } }}> {/* 调整Toolbar高度 */}
+            {/* 菜单按钮 */}
             <IconButton
               color="inherit"
               aria-label="open drawer"
               edge="start"
               onClick={handleDrawerToggle}
-              sx={{ mr: 2, display: { sm: 'none' } }}
+              sx={{
+                mr: 1,
+                display: { sm: 'none' },
+                fontSize: { xs: '1.25rem', sm: '1.5rem' } // 按钮大小
+              }}
             >
-              <MenuIcon />
+              <MenuIcon fontSize="medium" />
             </IconButton>
-              <Avatar sx={{ m: 1, bgcolor: 'transparent', width: 60, height: 60 }}>
-                <img src={PIcon} alt="Login Icon" style={{ width: '100%', height: '100%' }} />
-              </Avatar>
-            <Typography
-              variant="h4"
-              noWrap
-              component="div"
-              sx={{ flexGrow: 1 }}
-            >
-              <span style={{ fontFamily: `'Ma Shan Zheng', cursive` }}>商品比价网站</span>{' '}
-              <span style={{ fontFamily: `'Arizonia-Regular-OTF'`,fontWeight:600 }}>Price Pilot</span>
-            </Typography>
 
-            <Box sx={{ position: 'relative', display: 'flex' }}>
-              <IconButton color="inherit">
-                <SearchIcon fontSize="large"/>
-              </IconButton>
-              <InputBase
-                placeholder="搜索商品..."
-                inputProps={{ 'aria-label': 'search' }}
-                sx={{ color: 'inherit', ml: 1, flex: 1, borderBottom: '1px solid white' }}
-              />
-            </Box>
-            <Tooltip title="退出登录" arrow placement="bottom">
-              <IconButton
-                size="large"
-                edge="end"
-                color="inherit"
-                aria-label="account of current user"
-                onClick={handleLogout}
-              >
-                <LogoutIcon fontSize="large" />
-              </IconButton>
-            </Tooltip>
-          </Toolbar>
-        </AppBar>
+        {/* 图标 */}
+        <Avatar
+          sx={{
+            m: 0.5,
+            bgcolor: 'transparent',
+            width: { xs: 40, sm: 60 },
+            height: { xs: 40, sm: 60 } // 头像大小
+          }}
+        >
+          <img src={PIcon} alt="Login Icon" style={{ width: '100%', height: '100%' }} />
+        </Avatar>
+
+        {/* 标题 */}
+        <Typography
+          variant="h6"
+          noWrap
+          component="div"
+          sx={{
+            flexGrow: 1,
+            fontSize: { xs: '1.3rem', sm: '1.5rem', lg:'2.5rem' }, // 字体大小
+          }}
+        >
+          <span style={{ fontFamily: `'Ma Shan Zheng', cursive` }}>商品比价网站</span>{' '}
+          <span style={{ fontFamily: `'Arizonia-Regular-OTF'`, fontWeight: 600 }}>Price Pilot</span>
+        </Typography>
+
+        {/* 退出登录按钮 */}
+        <Tooltip title="退出登录" arrow placement="bottom">
+          <IconButton
+            edge="end"
+            color="inherit"
+            aria-label="account of current user"
+            onClick={handleLogout}
+          >
+            <LogoutIcon sx={{
+              fontSize: { xs: '1.2rem', sm: '1.5rem', lg:'2rem' }, // 调整按钮大小
+            }}/>
+          </IconButton>
+        </Tooltip>
+      </Toolbar>
+    </AppBar>
+
 
         {/* 侧边栏 */}
         <Box
@@ -193,7 +259,7 @@ function Home({ setIsAuthenticated }) {
               display: { xs: 'block', sm: 'none' },
               '& .MuiDrawer-paper': {
                 boxSizing: 'border-box',
-                width: drawerWidth,
+                width: phonedrawerWidth,
                 backgroundColor: '#ba4e5c', // 设置背景颜色为深灰色
                 color: '#ffd9d9',
                 transition: 'background-color 0.5s ease-in-out' // 添加过渡效果
@@ -244,74 +310,103 @@ function Home({ setIsAuthenticated }) {
               <Typography variant="body1" gutterBottom>
                 在这里，您可以比较不同在线市场的不同产品的价格。
               </Typography>
-              <Typography variant="body1" gutterBottom>
-                使用顶部的搜索栏查找产品，或使用侧面菜单导航查看比较历史记录、最喜欢的产品等。
-              </Typography>
-               {/*Content Grid Section */}
-              <Grid container spacing={4} sx={{ mt: 4 }}>
-                {/* Product Comparison */}
-                <Grid item xs={8} md={4}>
-                  <Card sx={{ maxWidth: 300 }}>
-                    <CardMedia
-                      component="img"
-                      height="300"
-                      image={pic1}
-                      alt="Product Comparison"
-                    />
-                    <CardContent>
-                      <Typography gutterBottom variant="h5" component="div">
-                        比较商品
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        获取来自多个来源的产品之间的详细比较以找到最优惠的价格。
-                      </Typography>
-                    </CardContent>
-                    <Button size="small" color="primary">探索</Button>
-                  </Card>
-                </Grid>
-
-                {/* Price History */}
-                <Grid item xs={8} md={4}>
-                  <Card sx={{ maxWidth: 300 }}>
-                    <CardMedia
-                      component="img"
-                      height="300"
-                      image={pic3}
-                      alt="Price History"
-                    />
-                    <CardContent>
-                      <Typography gutterBottom variant="h5" component="div">
-                        追踪历史价格
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        查看您最喜爱的产品的历史价格趋势。
-                      </Typography>
-                    </CardContent>
-                    <Button size="small" color="primary">查看</Button>
-                  </Card>
-                </Grid>
-
-                {/* Favorites */}
-                <Grid item xs={8} md={4}>
-                  <Card sx={{ maxWidth: 300 }}>
-                    <CardMedia
-                      component="img"
-                      height="300"
-                      image={pic2}
-                      alt="Favorites"
-                    />
-                    <CardContent>
-                      <Typography gutterBottom variant="h5" component="div">
-                        管理喜爱
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        追踪您喜爱的商品并获取降价通知。
-                      </Typography>
-                    </CardContent>
-                    <Button size="small" color="primary">管理</Button>
-                  </Card>
-                </Grid>
+              {/*Content Grid Section */}
+            <Grid container spacing={4} sx={{ mt: 4 }}>
+              {/* Product Comparison */}
+              <Grid item xs={12} sm={6} md={4}>
+                <Card
+                  sx={{
+                    maxWidth: { xs: 250, sm: 300 }, // 手机端小一点
+                    mx: 'auto', // 水平居中
+                  }}
+                >
+                  <CardMedia
+                    component="img"
+                    sx={{
+                      height: { xs: 150, sm: 300 }, // 手机端图片高度减小
+                      objectFit: "contain",         // 保证图片等比例缩放且完整显示
+                    }}
+                    image={pic1}
+                    alt="Product Comparison"
+                  />
+                  <CardContent>
+                    <Typography gutterBottom variant="h6" component="div" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                      比较商品
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '1rem' } }}>
+                      获取来自多个来源的产品之间的详细比较以找到最优惠的价格。
+                    </Typography>
+                  </CardContent>
+                  <Button size="small" color="primary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                   onClick={() => navigate('/home/product-comparison')}
+                  >探索</Button>
+                </Card>
               </Grid>
+
+              {/* Price History */}
+              <Grid item xs={12} sm={6} md={4}>
+                <Card
+                  sx={{
+                    maxWidth: { xs: 250, sm: 300 },
+                    mx: 'auto',
+                  }}
+                >
+                  <CardMedia
+                    component="img"
+                    sx={{
+                      height: { xs: 150, sm: 300 },
+                      objectFit: "contain",         // 保证图片等比例缩放且完整显示
+                    }}
+                    image={pic3}
+                    alt="Price History"
+                  />
+                  <CardContent>
+                    <Typography gutterBottom variant="h6" component="div" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                      追踪历史价格
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '1rem' } }}>
+                      查看您最喜爱的产品的历史价格趋势。
+                    </Typography>
+                  </CardContent>
+                  <Button size="small" color="primary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                    onClick={() => navigate('/home/price-history')}
+                  >查看</Button>
+                </Card>
+              </Grid>
+
+              {/* Favorites */}
+              <Grid item xs={12} sm={6} md={4}>
+                <Card
+                  sx={{
+                    maxWidth: { xs: 250, sm: 300 },
+                    mx: 'auto',
+                  }}
+                >
+                  <CardMedia
+                    component="img"
+                    sx={{
+                      height: { xs: 150, sm: 300 },
+                      objectFit: "contain",         // 保证图片等比例缩放且完整显示
+                    }}
+                    image={pic2}
+                    alt="Favorites"
+                  />
+                  <CardContent>
+                    <Typography gutterBottom variant="h6" component="div" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
+                      管理喜爱
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.8rem', sm: '1rem' } }}>
+                      追踪您喜爱的商品并获取降价通知。
+                    </Typography>
+                  </CardContent>
+                  <Button size="small" color="primary" sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                    onClick={() => navigate('/home/favorites')}
+                  >管理</Button>
+                </Card>
+              </Grid>
+            </Grid>
+
+
               <Box sx={{ width: '100%', mt: 6, mb: 2, textAlign: 'center' }}>
                   <Typography
                     variant="h4"
@@ -359,11 +454,11 @@ function Home({ setIsAuthenticated }) {
                 >
                   分类浏览
                 </Button>
-            {selectedCategory && (
-              <Typography variant="h6" gutterBottom>
-                当前分类: {selectedCategory}
-              </Typography>
-            )}
+                {selectedCategory && (
+                  <Typography variant="h6" gutterBottom>
+                    当前分类: {selectedCategory}
+                  </Typography>
+                )}
              <Grid container spacing={3} justifyContent="center">
                   {loadingProducts ? (
                   <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
@@ -449,6 +544,17 @@ function Home({ setIsAuthenticated }) {
           </Box>
       </Box>
     </ThemeProvider>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000} // 3秒后自动关闭
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }} // 提示位置
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </div>
   );
 }
 

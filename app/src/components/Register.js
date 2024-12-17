@@ -1,6 +1,7 @@
 // src/components/Register.js
 import React, { useState } from 'react';
-import {TextField, Button, Box, Typography, Container, Link, InputAdornment, IconButton} from '@mui/material';
+import {TextField, Button, Box, Typography, Container, Link, InputAdornment, IconButton,
+        Snackbar, Alert } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import CssBaseline from '@mui/material/CssBaseline';
 import { useNavigate } from 'react-router-dom';
@@ -21,18 +22,29 @@ function Register() {
   const [verificationCode, setVerificationCode] = useState('');
   const [isCodeSent, setIsCodeSent] = useState(false); // 是否已发送验证码
   const [codeCountdown, setCodeCountdown] = useState(0); // 倒计时
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: '' });
+
+  // 打开 Snackbar
+  const handleSnackbarOpen = (message, severity) => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  // 关闭 Snackbar
+  const handleSnackbarClose = () => {
+    setSnackbar({ open: false, message: '', severity: '' });
+  };
 
   // 注册提交处理函数
   const handleSubmit = async (event) => {
     event.preventDefault();
     // 检查密码是否一致
     if (password !== confirmPassword) {
-      alert("两次输入的密码不一致!");
+      handleSnackbarOpen(`两次输入的密码不一致！`, 'warning');
       return;
     }
     // 检查表单字段是否为空
     if (!username || !email || !password || !verificationCode) {
-      alert("请填写所有必填字段并输入验证码！");
+      handleSnackbarOpen(`请填写所有必填字段并输入验证码！`, 'warning');
       return;
     }
 
@@ -44,7 +56,7 @@ function Register() {
       });
 
       if (verifyResponse.data.status !== 'success') {
-        alert(`验证码错误：${verifyResponse.data.message}`);
+        handleSnackbarOpen(`验证码错误：${verifyResponse.data.message}`, 'error');
         return;
       }
 
@@ -56,21 +68,21 @@ function Register() {
       });
 
       if (registerResponse.data.status === 'success') {
-        alert('注册成功！');
+        handleSnackbarOpen(`注册成功！`, 'success');
         navigate('/login'); // 注册成功后跳转到登录页面
       } else {
-        alert(`注册失败：${registerResponse.data.message}`);
+        handleSnackbarOpen(`注册失败：${registerResponse.data.message}`, 'error');
       }
     } catch (error) {
       console.error('注册请求失败:', error);
-      alert('注册失败，请稍后重试！');
+      handleSnackbarOpen(`注册失败，请稍后重试！`, 'error');
     }
   };
 
   // 发送验证码
   const sendVerificationCode = async () => {
     if (!email) {
-      alert("请先填写邮箱地址！");
+      handleSnackbarOpen(`请先填写邮箱地址！`, 'warning');
       return;
     }
     if (isCodeSent) return; // 防止重复发送
@@ -78,7 +90,8 @@ function Register() {
     try {
       const response = await axios.post('http://127.0.0.1:8000/backend/send_verification_code', { email });
       if (response.data.status === 'success') {
-        alert('验证码已发送到您的邮箱！');
+        alert('');
+        handleSnackbarOpen(`验证码已发送到您的邮箱，请注意查收`, 'info');
         setIsCodeSent(true);
         setCodeCountdown(60); // 开启倒计时
         const interval = setInterval(() => {
@@ -92,11 +105,11 @@ function Register() {
           });
         }, 1000);
       } else {
-        alert(`发送验证码失败：${response.data.message}`);
+        handleSnackbarOpen(`发送验证码失败：${response.data.message}`, 'error');
       }
     } catch (error) {
       console.error('发送验证码失败:', error);
-      alert('发送验证码失败，请稍后重试！');
+      handleSnackbarOpen(`发送验证码失败，请稍后重试！`, 'error');
     }
   };
 
@@ -105,6 +118,7 @@ function Register() {
   };
 
   return (
+  <div>
       <ThemeProvider theme={theme}>
         <Box
           sx={{
@@ -283,6 +297,17 @@ function Register() {
           </Container>
         </Box>
       </ThemeProvider>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000} // 3秒后自动关闭
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }} // 提示位置
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+  </div>
   );
 }
 

@@ -1,6 +1,6 @@
 // Login.js
-import { useState } from 'react';
-import { TextField, Button, Box, Typography, Container, Link } from '@mui/material';
+import React, { useState } from 'react';
+import { TextField, Button, Box, Typography, Container, Link, Snackbar, Alert } from '@mui/material';
 import Grid from '@mui/material/Grid2';
 import Avatar from '@mui/material/Avatar';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -17,7 +17,17 @@ function Login({ setIsAuthenticated }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: '' });
 
+  // 打开 Snackbar
+  const handleSnackbarOpen = (message, severity) => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  // 关闭 Snackbar
+  const handleSnackbarClose = () => {
+    setSnackbar({ open: false, message: '', severity: '' });
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -44,20 +54,21 @@ function Login({ setIsAuthenticated }) {
           // 将 user_id 存储在 localStorage 中
           localStorage.setItem('user_id', userId);
 
-          alert('登录成功！');
+          handleSnackbarOpen(`登录成功！`, 'success');
           setIsAuthenticated(true);
           navigate('/home');
         } else {
-          alert(`登录失败：${response.data.message}`);
+          handleSnackbarOpen(`登录失败：${response.data.message}`, 'error');
         }
       }catch (error) {
           console.error('登录请求失败:', error);
-          alert('登录失败，请稍后重试！');
+          handleSnackbarOpen(`登录失败，请稍后重试！`, 'error');
         }
 
   };
 
   return (
+  <div>
       <ThemeProvider theme={theme}>
         <Box
           sx={{
@@ -176,6 +187,17 @@ function Login({ setIsAuthenticated }) {
           </Container>
         </Box>
       </ThemeProvider>
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000} // 3秒后自动关闭
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }} // 提示位置
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+  </div>
   );
 }
 

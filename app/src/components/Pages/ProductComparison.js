@@ -3,8 +3,7 @@ import React, { useState } from 'react';
 import {
   Typography, Box, Button, TextField, Card, CardContent, CardMedia, Link, Tooltip,
   IconButton, Divider, FormControl, MenuItem, Select, InputLabel, Pagination,
-  CircularProgress,
-  ListItemIcon
+  CircularProgress, ListItemIcon, Snackbar, Alert
 } from '@mui/material';
 import { useNavigate } from "react-router-dom";
 import Grid from '@mui/material/Grid2';
@@ -25,10 +24,21 @@ function ProductComparison() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [platformSearchQuery, setPlatformSearchQuery] = useState('');
-  const [selectedPlatform, setSelectedPlatform] = useState('JD');
+  const [selectedPlatform, setSelectedPlatform] = useState('');
   const [loading, setLoading] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: '' });
 
-  const PRODUCTS_PER_PAGE = 48;
+  // 打开 Snackbar
+  const handleSnackbarOpen = (message, severity) => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  // 关闭 Snackbar
+  const handleSnackbarClose = () => {
+    setSnackbar({ open: false, message: '', severity: '' });
+  };
+
+  const PRODUCTS_PER_PAGE = 50;
 
   const paginatedProducts = products.slice(
     (currentPage - 1) * PRODUCTS_PER_PAGE,
@@ -38,7 +48,7 @@ function ProductComparison() {
   const handleSearch = async (event) => {
     event.preventDefault();
     if (!searchQuery.trim()) {
-      alert('请输入搜索关键词！');
+      handleSnackbarOpen(`请输入搜索关键词！`, 'warning');
       return;
     }
     setLoading(true);
@@ -51,18 +61,19 @@ function ProductComparison() {
       });
 
       if (response.data.status === 'success') {
-        alert('查询成功！');
+        handleSnackbarOpen(`查询成功！`, 'success');
         setOriginalProducts(response.data.products); // 存储原始结果
         setProducts(response.data.products); // 初始化筛选结果
         setTotalPages(Math.ceil(response.data.products.length / PRODUCTS_PER_PAGE));
         setCurrentPage(1);
       } else {
-        alert(`查询失败：${response.data.message}`);
+        handleSnackbarOpen(`查询失败：${response.data.message}`, 'error');
         setOriginalProducts([]); // 清空原始结果
         setProducts([]); // 清空筛选结果
       }
     } catch (error) {
       console.error('查询失败:', error);
+      handleSnackbarOpen(`查询失败，请稍后重试！`, 'error');
       setOriginalProducts([]);
       setProducts([]);
     } finally {
@@ -73,11 +84,6 @@ function ProductComparison() {
   //关注函数
   const handleFavoriteClick = async (productId) => {
     const userId = localStorage.getItem('user_id');  // 从 localStorage 获取 user_id
-
-    if (!userId) {
-      alert('请先登录后再进行关注操作。');
-      return;
-    }
 
     // 判断当前商品是否已被关注
     const isLiked = favorites[productId];
@@ -97,9 +103,9 @@ function ProductComparison() {
 
       if (response.data.status === 'success') {
         if (isLiked) {
-          alert('取消关注成功！');
+          handleSnackbarOpen(`取消关注成功！`, 'success');
         } else {
-          alert('关注成功！');
+          handleSnackbarOpen(`关注成功！`, 'success');
         }
 
         // 更新本地的状态，切换商品的关注状态
@@ -108,14 +114,13 @@ function ProductComparison() {
           [productId]: !isLiked  // 切换状态：如果已喜欢则取消，未喜欢则添加
         }));
       } else {
-        alert(`操作失败：${response.data.message}`);
+        handleSnackbarOpen(`操作失败：${response.data.message}`, 'error');
       }
     } catch (error) {
       console.error('操作请求失败:', error);
-      alert('操作失败，请稍后重试！');
+      handleSnackbarOpen(`操作失败，请稍后重试！`, 'error');
     }
   };
-
 
   const handleSortChange = (option) => {
     setSortOption(option);
@@ -152,24 +157,57 @@ function ProductComparison() {
     window.scrollTo(0, 0);  // Automatically scroll to the top when the page changes
   };
 
-  const handlePlatformSearch = () => {
+  const handlePlatformSearch = async () => {
     if (!platformSearchQuery.trim()) {
-      alert('请输入关键词！');
+      handleSnackbarOpen(`请输入关键词！`, 'warning');
       return;
     }
     // 假设你有 API 调用或跳转逻辑
     console.log(`搜索平台: ${selectedPlatform}, 关键词: ${platformSearchQuery}`);
-    // 示例：跳转到平台搜索结果页面
-    window.open(`https://${selectedPlatform.toLowerCase()}.com/s?keyword=${platformSearchQuery}`);
+    // wait to be implemented
+    setLoading(true);
+    try {
+      const response = await axios.get('http://127.0.0.1:8000/backend/search_platform_products', {
+        params: {search: platformSearchQuery},
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.data.status === 'success') {
+        handleSnackbarOpen(`搜索成功！`, 'success');
+        setOriginalProducts(response.data.products); // 存储原始结果
+        setProducts(response.data.products); // 初始化筛选结果
+        setTotalPages(Math.ceil(response.data.products.length / PRODUCTS_PER_PAGE));
+        setCurrentPage(1);
+      } else {
+        handleSnackbarOpen(`搜索失败：${response.data.message}`, 'error');
+        setOriginalProducts([]); // 清空原始结果
+        setProducts([]); // 清空筛选结果
+      }
+    } catch (error) {
+      console.error('搜索失败:', error);
+      handleSnackbarOpen(`搜索失败，请稍后重试！`, 'error');
+      setOriginalProducts([]);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+
+
   };
 
   return (
+    <div>
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
         <Typography variant="h4" gutterBottom>
           商品比价
         </Typography>
-        <Button variant="contained" color="primary" onClick={() => navigate('/home')}>
+        <Button variant="contained" color="primary" onClick={() => navigate('/home')}
+          sx={{
+              fontSize: { xs: 10, sm: 15, lg:18 }, // 调整按钮大小
+            }}>
           返回首页
         </Button>
       </Box>
@@ -194,43 +232,98 @@ function ProductComparison() {
       </Box>
 
       {/* Sorting and Filtering Controls */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Box>
-          <Button variant="outlined" onClick={() => handleSortChange('relevance')}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          mb: 3,
+          gap: 1, // 增加间距
+        }}
+      >
+        {/* 排序按钮组 */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: { xs: 1, sm: 2 }, // 手机模式下按钮间距更小
+          }}
+        >
+          <Button
+            variant="outlined"
+            onClick={() => handleSortChange('relevance')}
+            sx={{
+              fontSize: { xs: '0.7rem', sm: '0.875rem' }, // 字体大小
+              padding: { xs: '4px 6px', sm: '6px 12px' }, // 内边距
+              minWidth: { xs: 'auto', sm: '80px' }, // 最小宽度
+            }}
+          >
             默认排序
           </Button>
-          <Button variant="outlined" onClick={() => handleSortChange('priceAsc')} sx={{ ml: 2 }}>
+          <Button
+            variant="outlined"
+            onClick={() => handleSortChange('priceAsc')}
+            sx={{
+              fontSize: { xs: '0.7rem', sm: '0.875rem' },
+              padding: { xs: '4px 6px', sm: '6px 12px' },
+              minWidth: { xs: 'auto', sm: '80px' },
+            }}
+          >
             价格从低到高
           </Button>
-          <Button variant="outlined" onClick={() => handleSortChange('priceDesc')} sx={{ ml: 2 }}>
+          <Button
+            variant="outlined"
+            onClick={() => handleSortChange('priceDesc')}
+            sx={{
+              fontSize: { xs: '0.7rem', sm: '0.875rem' },
+              padding: { xs: '4px 6px', sm: '6px 12px' },
+              minWidth: { xs: 'auto', sm: '80px' },
+            }}
+          >
             价格从高到低
           </Button>
         </Box>
-        <FormControl variant="outlined" sx={{ minWidth: 120 }}>
-          <InputLabel>平台筛选</InputLabel>
-         <Select
+
+        {/* 平台筛选 */}
+        <FormControl
+          variant="outlined"
+          sx={{
+            minWidth: { xs: 100, sm: 120 }, // 手机模式下减少最小宽度
+            fontSize: { xs: '0.75rem', sm: '1rem' }, // 字体大小
+          }}
+        >
+          <InputLabel
+            sx={{ fontSize: { xs: '0.75rem', sm: '1rem' } }} // 输入框的字体大小
+          >
+            平台筛选
+          </InputLabel>
+          <Select
             value={platformFilter}
             onChange={handlePlatformFilterChange}
             label="平台筛选"
+            sx={{
+              fontSize: { xs: '0.75rem', sm: '1rem' }, // 下拉框字体大小
+            }}
           >
             <MenuItem value="All">
               全部平台
             </MenuItem>
             <MenuItem value="京东">
               <ListItemIcon>
-                <JDLogo style={{ width: 24, height: 24 }} />
+                <JDLogo style={{ width: 20, height: 20 }} /> {/* 图标变小 */}
               </ListItemIcon>
-              京东
+              <Typography variant="body2">京东</Typography>
             </MenuItem>
             <MenuItem value="淘宝">
               <ListItemIcon>
-                <TaobaoLogo style={{ width: 24, height: 24 }} />
+                <TaobaoLogo style={{ width: 20, height: 20 }} />
               </ListItemIcon>
-              淘宝
+              <Typography variant="body2">淘宝</Typography>
             </MenuItem>
           </Select>
         </FormControl>
       </Box>
+
 
       {/* 商品展示卡片 */}
       <Grid container rowSpacing={4} columnSpacing={{ xs: 1, sm: 2, md: 3 }}>
@@ -270,6 +363,7 @@ function ProductComparison() {
                         overflow: 'hidden',      // 隐藏溢出部分
                         textOverflow: 'ellipsis',// 使用省略号表示溢出
                         whiteSpace: 'normal',    // 允许换行
+                        fontSize: { xs: 15, sm: 18, lg:20 },
                       }}
                     >
                       {product.title}
@@ -366,6 +460,17 @@ function ProductComparison() {
         </Box>
       )}
     </Box>
+       <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000} // 3秒后自动关闭
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }} // 提示位置
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+  </div>
   );
 }
 

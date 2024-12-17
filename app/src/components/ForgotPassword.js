@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
 import {
-    Box,
-    TextField,
-    Button,
-    Typography,
-    InputAdornment,
-    IconButton,
-    Container,
-    CssBaseline,
-    Link
+    Box, TextField, Button, Typography, InputAdornment, IconButton, Container, CssBaseline, Link,
+    Snackbar, Alert
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -29,11 +22,22 @@ function ForgotPassword() {
   const [showPassword, setShowPassword] = useState(false);
   const [codeCountdown, setCodeCountdown] = useState(60);
   const navigate = useNavigate();
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: '' });
+
+  // 打开 Snackbar
+  const handleSnackbarOpen = (message, severity) => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  // 关闭 Snackbar
+  const handleSnackbarClose = () => {
+    setSnackbar({ open: false, message: '', severity: '' });
+  };
 
   // 发送验证码
   const handleSendCode = async () => {
     if (!email) {
-      alert('请输入邮箱地址');
+      handleSnackbarOpen(`请输入邮箱地址`, 'warning');
       return;
     }
 
@@ -41,7 +45,8 @@ function ForgotPassword() {
       // 调用后端发送验证码
       const response = await axios.post('http://127.0.0.1:8000/backend/send_verification_code', { email });
       if (response.data.status === 'success') {
-        alert('验证码已发送，请检查您的邮箱');
+        alert('');
+        handleSnackbarOpen(`验证码已发送，请检查您的邮箱`, 'info');
         setIsCodeSent(true);
         // 倒计时逻辑
         let countdown = 60;
@@ -55,10 +60,10 @@ function ForgotPassword() {
           }
         }, 1000);
       } else {
-        alert(`发送验证码失败：${response.data.message}`);
+        handleSnackbarOpen(`发送验证码失败：${response.data.message}`, 'error');
       }
     } catch (error) {
-      alert('发送验证码失败，请稍后重试');
+      handleSnackbarOpen(`发送验证码失败，请稍后重试！`, 'error');
       console.error(error);
     }
   };
@@ -68,13 +73,13 @@ function ForgotPassword() {
     try {
       const response = await axios.post('http://127.0.0.1:8000/backend/verify_code', { email, verification_code: verificationCode });
       if (response.data.status === 'success') {
-        alert('验证码验证成功');
+        handleSnackbarOpen(`验证码验证成功`, 'success');
         setIsCodeVerified(true);
       } else {
-        alert('验证码验证失败，请检查验证码');
+        handleSnackbarOpen(`验证码验证失败，请检查验证码`, 'error');
       }
     } catch (error) {
-      alert('验证验证码失败，请稍后重试');
+      handleSnackbarOpen(`验证验证码失败，请稍后重试`, 'error');
       console.error(error);
     }
   };
@@ -82,7 +87,7 @@ function ForgotPassword() {
   // 重置密码
   const handleResetPassword = async () => {
     if (newPassword !== confirmPassword) {
-      alert('两次输入的密码不一致');
+      handleSnackbarOpen(`两次输入的密码不一致`, 'warning');
       return;
     }
 
@@ -92,18 +97,19 @@ function ForgotPassword() {
         password: newPassword,
       });
       if (response.data.status === 'success') {
-        alert('密码重置成功，请使用新密码登录');
+        handleSnackbarOpen(`密码重置成功，请使用新密码登录`, 'success');
         navigate('/login');
       } else {
-        alert(`密码重置失败：${response.data.message}`);
+        handleSnackbarOpen(`密码重置失败：${response.data.message}`, 'error');
       }
     } catch (error) {
-      alert('密码重置失败，请稍后重试');
+      handleSnackbarOpen(`密码重置失败，请稍后重试！`, 'error');
       console.error(error);
     }
   };
 
   return (
+      <div>
      <ThemeProvider theme={theme}>
         <Box
           sx={{
@@ -265,6 +271,17 @@ function ForgotPassword() {
         </Container>
         </Box>
     </ThemeProvider>
+    <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000} // 3秒后自动关闭
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }} // 提示位置
+      >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
+    </div>
   );
 }
 

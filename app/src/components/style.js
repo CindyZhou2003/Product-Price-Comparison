@@ -35,15 +35,21 @@ const theme = createTheme({
       fontWeight:400
     },
 
-    h4:{
+    h4: {
       fontFamily:`'Ma Shan Zheng', cursive`,
-      fontWeight: 500,
+      fontSize: '2rem', // 默认字体大小
+      '@media (max-width:600px)': { // 手机端
+        fontSize: '1.5rem',
+      },
     },
 
     h5:{
       fontFamily:`汉仪跳跳体简`,
       fontWeight:400,
-      fontSize:36,
+      fontSize: '2rem',
+      '@media (max-width:600px)': {
+        fontSize: '1.25rem',
+      },
     },
 
     h6:{
@@ -58,14 +64,12 @@ const theme = createTheme({
 
     body2:{
       fontFamily:`'Noto Serif SC', serif`,
-      fontSize: '1rem'
+      fontSize: '1rem',
+      '@media (max-width:600px)': {
+        fontSize: '0.875rem',
+      },
     },
-    subtitle1:{
 
-    },
-    subtitle2:{
-
-    },
   },
 });
 
