@@ -15,12 +15,12 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import {Outlet, useLocation, useNavigate} from "react-router-dom";
 import theme from './style';
 import { ThemeProvider } from '@mui/material/styles';
-import pic1 from '../asserts/img/pic1.jpg';
-import pic2 from '../asserts/img/pic2.jpg';
-import pic3 from '../asserts/img/pic3.jpg';
+import pic1 from '../asserts/pic1.jpg';
+import pic2 from '../asserts/pic2.jpg';
+import pic3 from '../asserts/pic3.jpg';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import HomeIcon from '@mui/icons-material/Home';
-import PIcon from "../asserts/img/Picon.png";
+import PIcon from "../asserts/Picon.png";
 import Avatar from "@mui/material/Avatar";
 import React, { useEffect, useState } from 'react';
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
@@ -29,6 +29,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import axios from "axios";
 const drawerWidth = 240;
 const phonedrawerWidth = 180;
+
 function Home({ setIsAuthenticated }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const navigate = useNavigate();

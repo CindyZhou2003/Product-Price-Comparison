@@ -4,9 +4,9 @@ import { TextField, Button, Box, Typography, Container, Link, Snackbar, Alert } 
 import Grid from '@mui/material/Grid2';
 import Avatar from '@mui/material/Avatar';
 import CssBaseline from '@mui/material/CssBaseline';
-import PIcon from '../asserts/img/Picon.png'
-import BgImg from '../asserts/img/bc.png'
-import MobileBgImg from '../asserts/img/phonebc.png'
+import PIcon from '../asserts/Picon.png'
+import BgImg from '../asserts/bc.png'
+import MobileBgImg from '../asserts/phonebc.png'
 import { useNavigate } from 'react-router-dom';
 import axios from "axios";
 import theme from './style'

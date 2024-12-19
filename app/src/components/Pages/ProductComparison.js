@@ -10,8 +10,8 @@ import Grid from '@mui/material/Grid2';
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import axios from "axios";
-import { ReactComponent as JDLogo } from '../../asserts/img/JD.svg'; // 替换为京东 logo 的 SVG 文件
-import { ReactComponent as TaobaoLogo } from '../../asserts/img/TB.svg'; // 替换为淘宝 logo 的 SVG 文件
+import { ReactComponent as JDLogo } from '../../asserts/JD.svg'; // 替换为京东 logo 的 SVG 文件
+import { ReactComponent as TaobaoLogo } from '../../asserts/TB.svg'; // 替换为淘宝 logo 的 SVG 文件
 
 function ProductComparison() {
   const navigate = useNavigate();

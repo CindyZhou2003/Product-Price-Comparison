@@ -5,8 +5,8 @@ import {TextField, Button, Box, Typography, Container, Link, InputAdornment, Ico
 import Grid from '@mui/material/Grid2';
 import CssBaseline from '@mui/material/CssBaseline';
 import { useNavigate } from 'react-router-dom';
-import BgImg from '../asserts/img/bc2.png'
-import MobileBgImg from '../asserts/img/phonebc.png'
+import BgImg from '../asserts/bc2.png'
+import MobileBgImg from '../asserts/phonebc.png'
 import axios from "axios";
 import theme from './style'
 import {ThemeProvider } from '@mui/material/styles';

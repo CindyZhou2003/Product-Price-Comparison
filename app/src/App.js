@@ -1,8 +1,7 @@
-// App.js
-import './asserts/css/App.css';
+// src/App.js
 import Login from './components/Login';
 import Home from './components/Home';
-import {BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom';
+import {HashRouter as Router, Routes, Route, Navigate} from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import Register from "./components/Register";
 import ForgotPassword from "./components/ForgotPassword";
@@ -26,7 +25,7 @@ function App() {
   }, [isAuthenticated]);
 
   return (
-    <Router>
+    <Router basename={process.env.PUBLIC_URL}>
       <Routes>
         {/* If not authenticated, redirect to login page */}
         <Route path="/home" element={isAuthenticated ?
@@ -46,6 +45,7 @@ function App() {
           <Route path="favorites" element={<Favorites />} />
           <Route path="settings" element={<Settings />} />
         </Route>
+        {/*<Route path="/" element={<div>Hello World</div>} />*/}
       </Routes>
     </Router>
   );

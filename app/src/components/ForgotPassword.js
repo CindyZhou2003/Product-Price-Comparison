@@ -7,8 +7,8 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import theme from "./style";
-import BgImg from "../asserts/img/bc2.png";
-import MobileBgImg from '../asserts/img/phonebc.png'
+import BgImg from "../asserts/bc2.png";
+import MobileBgImg from '../asserts/phonebc.png'
 import {ThemeProvider } from '@mui/material/styles';
 import Grid from "@mui/material/Grid2";
 
