@@ -162,13 +162,12 @@ function ProductComparison() {
       handleSnackbarOpen(`请输入关键词！`, 'warning');
       return;
     }
-    // 假设你有 API 调用或跳转逻辑
-    console.log(`搜索平台: ${selectedPlatform}, 关键词: ${platformSearchQuery}`);
-    // wait to be implemented
+
     setLoading(true);
     try {
       const response = await axios.get('http://127.0.0.1:8000/backend/search_platform_products', {
-        params: {search: platformSearchQuery},
+        params: {search: platformSearchQuery,
+        platform:selectedPlatform,},
         headers: {
           'Content-Type': 'application/json',
         },

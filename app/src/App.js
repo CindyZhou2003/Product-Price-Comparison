@@ -1,7 +1,7 @@
 // src/App.js
 import Login from './components/Login';
 import Home from './components/Home';
-import {HashRouter as Router, Routes, Route, Navigate} from 'react-router-dom';
+import {BrowserRouter as Router, Routes, Route, Navigate} from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import Register from "./components/Register";
 import ForgotPassword from "./components/ForgotPassword";

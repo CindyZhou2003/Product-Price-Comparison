@@ -185,7 +185,7 @@ function Settings() {
       }
     }
     getUserInfo();
-  }, []);
+  }, [userId]);
 
   return (
 <div>

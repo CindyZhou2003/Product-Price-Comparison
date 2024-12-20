@@ -16,7 +16,7 @@ import re
 logging.basicConfig(level=logging.DEBUG)  # 设置最低日志级别为 DEBUG
 import random
 from django.core.mail import send_mail
-from catch.crawler import crawl_tb, crawl_jd,tb_update_price, jd_update_price
+from backend.crawler import crawl_tb, crawl_jd,tb_update_price, jd_update_price
 import string
 from django.core.cache import cache
 from django.contrib.auth.hashers import check_password
@@ -564,7 +564,7 @@ def search_database(search_terms):
     return Products.objects.filter(query)
 
 @csrf_exempt
-@require_http_methods(["POST"])
+@require_http_methods(["GET"])
 def search_platform_products(request):
     """
     在平台上搜索、爬虫，并将数据加入数据库后搜索数据库中的商品
@@ -577,9 +577,8 @@ def search_platform_products(request):
     }
     try:
         # 获取请求数据
-        data = json.loads(request.body.decode('utf-8'))
-        search = data.get("search")
-        platform = data.get("platform")
+        search = request.GET.get("search")
+        platform = request.GET.get("platform")
 
         # 检查必填字段
         if not search or not platform:
@@ -588,9 +587,9 @@ def search_platform_products(request):
             return JsonResponse(response)
 
         # 根据平台爬取数据
-        if platform == '淘宝':
+        if platform == 'Taobao':
             crawl_tb(search)  # 从淘宝搜索商品并加入数据库
-        elif platform == '京东':
+        elif platform == 'JD':
             crawl_jd(search)
         else:
             response["status"] = "error"

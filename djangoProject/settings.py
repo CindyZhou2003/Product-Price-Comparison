@@ -101,8 +101,8 @@ DATABASES = {
         'NAME': 'pcb',
         'USER': 'root',
         'PASSWORD': 'Sql_201208',
-        'HOST': 'localhost',
-        'PORT': 1024,
+        'HOST': 'db',
+        'PORT': '3306',
     }
 }
 
