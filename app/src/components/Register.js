@@ -68,7 +68,9 @@ function Register() {
       });
 
       if (registerResponse.data.status === 'success') {
-        handleSnackbarOpen(`注册成功！`, 'success');
+        handleSnackbarOpen(`注册成功！稍后将会跳转到登录界面`, 'success');
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
         navigate('/login'); // 注册成功后跳转到登录页面
       } else {
         handleSnackbarOpen(`注册失败：${registerResponse.data.message}`, 'error');
@@ -90,7 +92,6 @@ function Register() {
     try {
       const response = await axios.post('http://127.0.0.1:8000/backend/send_verification_code', { email });
       if (response.data.status === 'success') {
-        alert('');
         handleSnackbarOpen(`验证码已发送到您的邮箱，请注意查收`, 'info');
         setIsCodeSent(true);
         setCodeCountdown(60); // 开启倒计时

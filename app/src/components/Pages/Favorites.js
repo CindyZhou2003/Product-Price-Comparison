@@ -166,7 +166,7 @@ function Favorites() {
                         overflow: 'hidden',      // 隐藏溢出部分
                         textOverflow: 'ellipsis',// 使用省略号表示溢出
                         whiteSpace: 'normal',    // 允许换行
-                        fontSize: { xs: 15, sm: 18, lg:20 },
+                        fontSize: { xs: 15, sm: 18 },
                       }}
                     >
                       {product.title}
@@ -197,7 +197,7 @@ function Favorites() {
                     justifyContent: 'space-between',
                     alignItems: 'center',
                     p: 2,
-                    gap: 1, // 按钮之间的间距
+                    gap: 0.6, // 按钮之间的间距
                   }}
                 >
                   <Button
@@ -206,9 +206,9 @@ function Favorites() {
                     href={product.link}
                     target="_blank"
                     sx={{
-                      fontSize: { xs: '0.7rem', sm: '0.875rem' }, // 字体大小
-                      padding: { xs: '4px 6px', sm: '6px 12px' }, // 内边距
-                      minWidth: { xs: 'auto', sm: '80px' }, // 最小宽度
+                      fontSize: { xs: '0.7rem', sm: '0.85rem' }, // 字体大小
+                      padding: { xs: '4px 6px', sm: '6px 10px' }, // 内边距
+                      minWidth: { xs: 'auto', sm: '75px' }, // 最小宽度
                     }}
                   >
                     查看详情
@@ -219,9 +219,9 @@ function Favorites() {
                     color="secondary"
                     onClick={() => handleClickOpen(product.id)}
                     sx={{
-                      fontSize: { xs: '0.7rem', sm: '0.875rem' }, // 字体大小
-                      padding: { xs: '4px 6px', sm: '6px 12px' }, // 内边距
-                      minWidth: { xs: 'auto', sm: '80px' }, // 最小宽度
+                      fontSize: { xs: '0.7rem', sm: '0.85rem' }, // 字体大小
+                      padding: { xs: '4px 6px', sm: '6px 10px' }, // 内边距
+                      minWidth: { xs: 'auto', sm: '75px' }, // 最小宽度
                     }}
                   >
                     历史价格

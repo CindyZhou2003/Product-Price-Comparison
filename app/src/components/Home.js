@@ -27,7 +27,7 @@ import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import axios from "axios";
-const drawerWidth = 240;
+const drawerWidth = 210;
 const phonedrawerWidth = 180;
 
 function Home({ setIsAuthenticated }) {
@@ -108,7 +108,7 @@ function Home({ setIsAuthenticated }) {
       <List>
         {menuItems.map((item) => (
           <ListItem button key={item.text} onClick={() => navigate(item.path)}
-            sx={{xs: '1.1rem', sm: '1.5rem', lg:'2.5rem'}}
+            sx={{xs: '1.1rem', sm: '1.5rem', lg:'2rem'}}
           >
             <IconButton color="inherit">
               {item.icon}
@@ -185,7 +185,7 @@ function Home({ setIsAuthenticated }) {
             bgcolor: 'primary.main',
           }}
         >
-          <Toolbar sx={{ minHeight: { xs: 50, sm: 64 } }}> {/* 调整Toolbar高度 */}
+          <Toolbar sx={{ minHeight: { xs: 50, sm: 60 } }}> {/* 调整Toolbar高度 */}
             {/* 菜单按钮 */}
             <IconButton
               color="inherit"
@@ -220,7 +220,7 @@ function Home({ setIsAuthenticated }) {
           component="div"
           sx={{
             flexGrow: 1,
-            fontSize: { xs: '1.3rem', sm: '1.5rem', lg:'2.5rem' }, // 字体大小
+            fontSize: { xs: '1.3rem', sm: '1.5rem', lg:'2rem' }, // 字体大小
           }}
         >
           <span style={{ fontFamily: `'Ma Shan Zheng', cursive` }}>商品比价网站</span>{' '}
@@ -236,7 +236,7 @@ function Home({ setIsAuthenticated }) {
             onClick={handleLogout}
           >
             <LogoutIcon sx={{
-              fontSize: { xs: '1.2rem', sm: '1.5rem', lg:'2rem' }, // 调整按钮大小
+              fontSize: { xs: '1.2rem', sm: '1.6rem', }, // 调整按钮大小
             }}/>
           </IconButton>
         </Tooltip>
@@ -317,14 +317,14 @@ function Home({ setIsAuthenticated }) {
               <Grid item xs={12} sm={6} md={4}>
                 <Card
                   sx={{
-                    maxWidth: { xs: 250, sm: 300 }, // 手机端小一点
+                    maxWidth: { xs: 250, sm: 280 }, // 手机端小一点
                     mx: 'auto', // 水平居中
                   }}
                 >
                   <CardMedia
                     component="img"
                     sx={{
-                      height: { xs: 150, sm: 300 }, // 手机端图片高度减小
+                      height: { xs: 150, sm: 280 }, // 手机端图片高度减小
                       objectFit: "contain",         // 保证图片等比例缩放且完整显示
                     }}
                     image={pic1}
@@ -348,14 +348,14 @@ function Home({ setIsAuthenticated }) {
               <Grid item xs={12} sm={6} md={4}>
                 <Card
                   sx={{
-                    maxWidth: { xs: 250, sm: 300 },
+                    maxWidth: { xs: 250, sm: 280 },
                     mx: 'auto',
                   }}
                 >
                   <CardMedia
                     component="img"
                     sx={{
-                      height: { xs: 150, sm: 300 },
+                      height: { xs: 150, sm: 280 },
                       objectFit: "contain",         // 保证图片等比例缩放且完整显示
                     }}
                     image={pic3}
@@ -379,14 +379,14 @@ function Home({ setIsAuthenticated }) {
               <Grid item xs={12} sm={6} md={4}>
                 <Card
                   sx={{
-                    maxWidth: { xs: 250, sm: 300 },
+                    maxWidth: { xs: 250, sm: 280 },
                     mx: 'auto',
                   }}
                 >
                   <CardMedia
                     component="img"
                     sx={{
-                      height: { xs: 150, sm: 300 },
+                      height: { xs: 150, sm: 280 },
                       objectFit: "contain",         // 保证图片等比例缩放且完整显示
                     }}
                     image={pic2}
@@ -493,6 +493,7 @@ function Home({ setIsAuthenticated }) {
                                 overflow: 'hidden',      // 隐藏溢出部分
                                 textOverflow: 'ellipsis',// 使用省略号表示溢出
                                 whiteSpace: 'normal',    // 允许换行
+                                fontSize: { xs: 15, sm: 18, },
                               }}
                             >
                               {product.title}

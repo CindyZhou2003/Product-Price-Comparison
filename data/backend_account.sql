@@ -1,0 +1,2 @@
+INSERT INTO bs.backend_account (last_login, id, username, email, password, email_active, is_admin) VALUES (null, 1, 'test1', 'CindyZhou2003@outlook.com', 'pbkdf2_sha256$870000$RDax53dGXO8k9o7ESUFklM$D7uRBKwTIQ/iQeVdLiipf/yd9Q0+Yy0UavCbAHDoea4=', 1, 0);
+INSERT INTO bs.backend_account (last_login, id, username, email, password, email_active, is_admin) VALUES (null, 2, 'test2', '3220106418@zju.edu.cn', 'pbkdf2_sha256$870000$Vh5td0v1qjCsXCDM4E7gHZ$DVNj5JbUPzIQ2dvNqCP29IA3XU1sPMvagBvuoVVW5I8=', 1, 0);

@@ -27,7 +27,7 @@ services:
 
     environment:
       MYSQL_HOST: localhost
-      MYSQL_DATABASE: pcb
+      MYSQL_DATABASE: bs
       MYSQL_PORT: 3306
       MYSQL_ROOT_PASSWORD: Sql_201208
       MYSQL_USER: user
@@ -39,6 +39,7 @@ services:
       retries: 3
     volumes:
       - db_data:/var/lib/mysql
+      - ./bs.sql:/docker-entrypoint-initdb.d/bs.sql:ro
     networks:
       - my_network
     ports:

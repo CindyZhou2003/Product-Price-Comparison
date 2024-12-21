@@ -3,7 +3,10 @@ import logging
 import requests
 from django.core import mail
 from django.http import JsonResponse
+from django.utils.timezone import now
 from django.views.decorators.http import require_http_methods
+from selenium.webdriver.common.devtools.v129.fetch import continue_response
+
 from backend.models import *
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
@@ -35,39 +38,70 @@ def send_verification_code(request):
         # 获取请求数据
         data = json.loads(request.body.decode('utf-8'))
         user_email = data.get('email')
+        forget = data.get('forget', False)  # 默认为 False
 
         if not user_email:
-            response['status'] = 'error'
-            response['message'] = '请提供邮箱地址'
+            response = {'status': 'error', 'message': '请提供邮箱地址'}
             return JsonResponse(response)
 
-        # 生成6位数字验证码
-        verification_code = ''.join(random.choices(string.digits, k=6))
+        # 处理两种情况
+        try:
+            account = Account.objects.get(email=user_email)
+            # 如果找到了账号，且 forget 为 True，发送邮件
+            if forget:
+                send_verification_email(user_email)
+                response['status'] = 'success'
+                response['message'] = '验证码已发送到您的邮箱'
+                return JsonResponse(response)
 
-        # 将验证码存入缓存，设置过期时间为5分钟
-        cache.set(user_email, verification_code, timeout=300)  # 5分钟过期
+            # 找到了账号，但 forget 为 False，返回错误
+            response['status'] = 'error'
+            response['message'] = '邮箱已被注册过'
+            return JsonResponse(response)
 
-        # 准备邮件内容
-        subject = "您的注册验证码"
-        message = f"亲爱的用户，\n\n您的注册验证码是：{verification_code}\n\n验证码有效时间为5分钟，请及时使用。"
+        except Account.DoesNotExist:
+            # 没找到账号，且 forget 为 False，发送邮件
+            if not forget:
+                send_verification_email(user_email)
+                response['status'] = 'success'
+                response['message'] = '验证码已发送到您的邮箱'
+                return JsonResponse(response)
 
-        # 发送邮件
-        send_mail(
-            subject,
-            message,
-            'cindyzhou6418@gmail.com',  # 替换为发件人地址
-            [user_email],
-            fail_silently=False,
-        )
-
-        response['status'] = 'success'
-        response['message'] = '验证码已发送到您的邮箱'
+            # 没找到账号，且 forget 为 True，返回错误
+            response['status'] = 'error'
+            response['message'] = '账号不存在'
+            return JsonResponse(response)
 
     except Exception as e:
         response['status'] = 'error'
         response['message'] = str(e)
 
     return JsonResponse(response)
+
+
+def send_verification_email(user_email):
+    """
+    辅助函数：生成验证码并发送邮件
+    """
+    # 生成6位数字验证码
+    verification_code = ''.join(random.choices(string.digits, k=6))
+
+    # 将验证码存入缓存，设置过期时间为5分钟
+    cache.set(user_email, verification_code, timeout=300)  # 5分钟过期
+
+    # 准备邮件内容
+    subject = "您的验证码"
+    message = f"亲爱的用户，\n\n您的验证码是：{verification_code}\n\n验证码有效时间为5分钟，请及时使用。"
+
+    # 发送邮件
+    send_mail(
+        subject,
+        message,
+        'cindyzhou6418@gmail.com',  # 替换为发件人地址
+        [user_email],
+        fail_silently=False,
+    )
+
 
 
 @csrf_exempt
@@ -325,6 +359,14 @@ def reset_password(request):
             response['message'] = 'User does not exist.'
             return JsonResponse(response, status=404)
 
+        if len(new_password) < 6:
+            response['status'] = 'error'
+            response['message'] = '密码长度必须至少为6个字符'
+
+        if not re.match(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$', new_password):
+            response['status'] = 'error'
+            response['message'] = '密码必须含有至少一个字母和数字'
+            return JsonResponse(response)
         # 更新用户密码
         user.password = make_password(new_password)
         user.save()
@@ -456,10 +498,17 @@ def update_and_show_price(request):
 
         # 准备返回给前端的历史价格数据
         price_history_list = []
-        for entry in price_history:
+
+        if price_history_list:
+            for entry in price_history:
+                price_history_list.append({
+                    'date': entry.created_at.strftime('%Y-%m-%d'),  # 转换日期格式
+                    'price': entry.price
+                })
+        else:
             price_history_list.append({
-                'date': entry.created_at.strftime('%Y-%m-%d'),  # 转换日期格式
-                'price': entry.price
+                'date': now().strftime('%Y-%m-%d'),  # 当前日期
+                'price': good.price,
             })
 
         # 返回给前端的数据
@@ -481,11 +530,18 @@ def show_price(request):
         product_id = request.GET.get("id")
         good = Products.objects.get(id=product_id)
         price_history = Prices.objects.filter(product=good).order_by('created_at')
+
         price_history_list = []
-        for entry in price_history:
+        if price_history_list:
+            for entry in price_history:
+                price_history_list.append({
+                    'date': entry.created_at.strftime('%Y-%m-%d'),  # 转换日期格式
+                    'price': entry.price
+                })
+        else:
             price_history_list.append({
-                'date': entry.created_at.strftime('%Y-%m-%d'),  # 转换日期格式
-                'price': entry.price
+                'date': now().strftime('%Y-%m-%d'),  # 当前日期
+                'price': good.price,
             })
 
         # 返回给前端的数据
@@ -724,135 +780,6 @@ def get_favorites(request):
 
     return JsonResponse(response)
 
-
-def check_price(item_url):
-    """
-    确认当前价格是否低于之前价格
-    :param item_url: 商品的url
-    :return: bool True or False
-    """
-    try:
-        # 尝试获取对应的商品记录
-        good = Products.objects.get(link=item_url)
-    except ObjectDoesNotExist:
-        raise ValueError("商品未被收录")  # 抛出异常，说明商品未被收录
-
-    # 判断商品所属平台
-    platform = identify_platform(item_url)
-
-    # 更新商品价格
-    if platform == '淘宝':
-        tb_update_price(good, item_url)
-    elif platform == '京东':
-        jd_update_price(good, item_url)
-    else:
-        raise ValueError("不支持的平台")  # 抛出异常，说明该平台无法查询价格
-
-    try:
-        # 获取用户关注商品的时间
-        liked_time = Likes.objects.get(product=good).created_at
-    except ObjectDoesNotExist:
-        raise ValueError("未找到用户对该商品的关注记录")  # 抛出异常，说明未找到关注记录
-
-    # 查询商品的历史价格记录
-    price_history = Prices.objects.filter(product=good).order_by('created_at')
-
-    # 找到关注时间之前最近一次的价格
-    pre_liked_price = price_history.filter(created_at__lt=liked_time).last()
-
-    # 如果关注时间之前没有价格记录，使用 Products 表中的价格
-    if not pre_liked_price:
-        pre_liked_price_value = good.price
-    else:
-        pre_liked_price_value = pre_liked_price.price
-
-    # 找到关注时间之后的所有价格
-    post_liked_prices = price_history.filter(created_at__gte=liked_time)
-
-    # 比较逻辑：检查关注时间后的价格是否低于关注时间前的最后价格
-    for post_price in post_liked_prices:
-        if post_price.price < pre_liked_price_value:
-            return True  # 找到符合条件的价格，返回True
-
-    # 如果没有找到更低的价格，返回False
-    return False
-
-
-@csrf_exempt
-@require_http_methods(["POST"])
-def send_user_email(request):
-    """
-    用户关注的商品降价后给他们发送邮件
-    :return: JsonResponse
-    """
-    response = {}
-    try:
-        # 获取请求数据
-        data = json.loads(request.body.decode('utf-8'))
-        user_id = data.get('user_id')
-
-        # 获取用户信息
-        user = Account.objects.get(id=user_id)
-        can_send_email = user.email_active
-        if not can_send_email:
-            response['status'] = 'error'
-            response['message'] = 'User close email service.'
-            return JsonResponse(response)
-
-        user_email = user.email
-        username = user.username
-
-        # 查询用户关注的商品
-        likes = Likes.objects.filter(user_id=user_id)
-
-        if not likes.exists():
-            response['status'] = 'error'
-            response['message'] = "用户没有关注任何商品"
-            return JsonResponse(response)
-
-        # 准备邮件内容
-        lowered_price_items = []
-        for like in likes:
-            product = like.product
-            if check_price(product.link):  # 调用 check_price 检查是否降价
-                lowered_price_items.append(product)
-
-        if not lowered_price_items:
-            response['status'] = 'success'
-            response['message'] = "没有降价的商品"
-            return JsonResponse(response)
-
-        # 拼接降价商品信息
-        items_info = "\n".join([
-            f"{item.title}: {item.price} - {item.link}" for item in lowered_price_items
-        ])
-        subject = "您关注的商品已降价！"
-        message = f"亲爱的 {username},\n\n商品比价网站提醒您，您关注的以下商品已降价：\n\n{items_info}\n\n快去抢购吧！"
-
-        connection = mail.get_connection()  # Use default email connection
-        # 发送邮件
-        connection.open()
-        email= mail.EmailMessage(
-            subject,
-            message,
-            'CindyZhou6418@gmail.com',  # 替换为发件人地址
-            [user_email],
-        )
-        email.send()
-        connection.close()
-
-        response['status'] = 'success'
-        response['message'] = f"已向用户 {username} 发送降价通知"
-
-    except Account.DoesNotExist:
-        response['status'] = 'error'
-        response['message'] = "用户不存在"
-
-    except Exception as e:
-        response['status'] = 'error'
-        response['message'] = str(e)
-
-    return JsonResponse(response)
 
 
 @csrf_exempt

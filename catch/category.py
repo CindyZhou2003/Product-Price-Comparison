@@ -1,4 +1,4 @@
-## 记录 236 错
+
 import pandas as pd
 from django.db import transaction
 
@@ -105,7 +105,7 @@ def auto_classify_by_keyword(keyword, category_index, id_range):
         products = Products.objects.filter(
             id__gte=start_id,
             id__lte=end_id,
-            category__isnull=True,
+            # category__isnull=True,
             title__icontains=keyword,
         )
 
@@ -125,8 +125,7 @@ def auto_classify_by_keyword(keyword, category_index, id_range):
 
 if __name__ == "__main__":
     # manual_classify()
-    keyword = "挂件"
-    index = 38
-    range = (1911,2197)
+    keyword = '瑜伽垫'
+    index = 28
+    range = (1,3300)
     auto_classify_by_keyword(keyword, index, range)
-

@@ -1,7 +1,4 @@
-from datetime import datetime
 from django.db import models
-from django.utils import timezone
-from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
 
 class MyAccountManager(BaseUserManager):
@@ -75,7 +72,8 @@ class Products(models.Model):
     info = models.CharField(max_length=50, null=False)  # 评论数或购买人数
     shop = models.CharField(max_length=50, null=False)  # 店铺名
     img = models.CharField(max_length=350, null=False)  # 商品图片 URL
-    link = models.CharField(max_length=300, unique=True, null=False)  # 商品购买链接
+    link = models.CharField(max_length=300, null=False)  # 商品购买链接
+    link_hash = models.CharField(max_length=64, unique=True)
     platform = models.CharField(max_length=20, null=False)  # 电商平台
     category = models.ForeignKey(
         Categories, null=True, blank=True, on_delete=models.SET_NULL, related_name='products'
@@ -84,11 +82,6 @@ class Products(models.Model):
     def __str__(self):
         return self.title
 
-    def modify_price(self,new_price):
-        """更新价格"""
-        self.price = new_price
-        self.save()
-
 
 class Prices(models.Model): # 商品历史价格表
     id = models.AutoField(primary_key=True)
@@ -96,9 +89,6 @@ class Prices(models.Model): # 商品历史价格表
     price = models.FloatField(null=False)  # 商品历史价格
     is_valid = models.BooleanField(default=True)  # 价格是否有效
     created_at = models.DateTimeField(auto_now_add=True)  # 价格记录创建时间
-
-    def __str__(self):
-        return f"{self.product.title} - ￥{self.price} on {self.platform}"
 
     class Meta:
         ordering = ['-created_at']  # 默认按创建时间降序排列

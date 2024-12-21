@@ -43,9 +43,14 @@ function ForgotPassword() {
 
     try {
       // 调用后端发送验证码
-      const response = await axios.post('http://127.0.0.1:8000/backend/send_verification_code', { email });
+      const forget = true;
+        const response = await axios.post('http://127.0.0.1:8000/backend/send_verification_code',
+            { email:email, forget:forget }, {
+          headers: {
+            'Content-Type': 'application/json', // 确保内容类型是 JSON
+          },
+        });
       if (response.data.status === 'success') {
-        alert('');
         handleSnackbarOpen(`验证码已发送，请检查您的邮箱`, 'info');
         setIsCodeSent(true);
         // 倒计时逻辑
@@ -98,6 +103,7 @@ function ForgotPassword() {
       });
       if (response.data.status === 'success') {
         handleSnackbarOpen(`密码重置成功，请使用新密码登录`, 'success');
+        await new Promise(resolve => setTimeout(resolve, 1000));
         navigate('/login');
       } else {
         handleSnackbarOpen(`密码重置失败：${response.data.message}`, 'error');
@@ -180,7 +186,7 @@ function ForgotPassword() {
                   <TextField
                     fullWidth
                     required
-                    label="请输入您的邮箱地址"
+                    label="请输入您注册时的邮箱地址"
                     name="email"
                     autoComplete="email"
                     variant="outlined"
@@ -234,6 +240,7 @@ function ForgotPassword() {
                   variant="outlined"
                   type={showPassword ? 'text' : 'password'}
                   value={newPassword}
+                  helperText="密码必须包含至少6个字符，字母和数字都要有"
                   onChange={(e) => setNewPassword(e.target.value)}
                   sx={{ mt: 2 }}
                   slotProps={{
@@ -256,6 +263,7 @@ function ForgotPassword() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   sx={{ mt: 2 }}
+                  helperText="请重新输入密码"
                 />
                 <Button
                   fullWidth

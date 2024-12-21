@@ -23,7 +23,7 @@ urlpatterns = [
     path('get_favorites', views.get_favorites), # 展示关注列表
 
     path('search_platform_products', views.search_platform_products), # 平台搜索（爬虫）商品加入数据库
-    path('send_user_email', views.send_user_email), # 发送降价邮件提醒
+
 
     path('change_email_service_state', views.change_email_service_state), # 用户是否想要发送降价提醒
     path('get_user_info', views.get_user_info), # 获取用户名

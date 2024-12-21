@@ -63,6 +63,7 @@ function Settings() {
           // 处理响应结果
           if (response.data.status === 'success') {
               handleSnackbarOpen(`修改密码成功！`, 'success');
+              await new Promise(resolve => setTimeout(resolve, 1000));
               window.location.reload(); // 刷新当前页面
           } else {
               handleSnackbarOpen(`修改密码失败：${response.data.message}`, 'error');
@@ -210,7 +211,7 @@ function Settings() {
       </Typography>
       <Grid container spacing={5} >
         {/* 左侧内容 */}
-        <Grid item xs={12} md={6} maxWidth={600}>
+        <Grid item xs={12} md={6} maxWidth={550}>
           <Divider sx={{ my: 3 }}>修改绑定邮箱</Divider>
           <TextField
             label="当前邮箱"
@@ -275,7 +276,7 @@ function Settings() {
         </Grid>
 
         {/* 右侧内容 */}
-        <Grid item xs={12} md={6} maxWidth={600}>
+        <Grid item xs={12} md={6} maxWidth={550}>
           <Divider sx={{ my: 3 }}>更改密码</Divider>
 
             <TextField
@@ -350,7 +351,7 @@ function Settings() {
               onChange={(e) => setEmailNotifications(e.target.checked)}
             />
           }
-          label="电子邮件通知"
+          label="电子邮件商品降价通知"
         />
         <Button variant="contained" color="secondary" onClick={handleSavePreferences}>
           保存偏好设置

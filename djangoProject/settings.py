@@ -98,11 +98,13 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         # change the content to your local database information
-        'NAME': 'pcb',
+        'NAME': 'bs',
         'USER': 'root',
         'PASSWORD': 'Sql_201208',
-        'HOST': 'db',
-        'PORT': '3306',
+        # 'HOST': 'db',
+        'HOST': 'localhost',
+        # 'PORT': '3306',
+        'PORT':'1024',
     }
 }
 

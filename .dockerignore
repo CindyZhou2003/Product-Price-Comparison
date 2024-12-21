@@ -1,0 +1,7 @@
+.venv
+.idea
+app/build
+app/node_modules
+catch
+data
+!*.pkl

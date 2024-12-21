@@ -37,10 +37,23 @@ GRANT ALL PRIVILEGES ON *.* TO 'Sql_201208'@'%';
 
 docker exec -it mysql bash
 
-mysqldump -u root -p -P 1024 pcb > pcb_backup.sql
+mysqldump -u root -p -P 1024 bs > bs_backup.sql
+
 docker cp pcb_backup.sql <container_name>:/pcb_backup.sql
+
 docker exec -it <container_name> mysql -u root -p pcb < /pcb_backup.sql
+
+docker exec -it price_comparison_website-backend-1 /bin/bash
+
+
+apt-get update && apt-get install -y dbus
+mkdir -p /run/dbus
+dbus-daemon --system --fork
+
+docker-compose down -v #移除挂载的卷
 
 
 ```
+
+Django后端的settings.py中有数据库相关的内容可能需要更改：
 

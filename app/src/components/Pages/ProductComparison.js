@@ -122,12 +122,12 @@ function ProductComparison() {
     }
   };
 
-  const handleSortChange = (option) => {
-    setSortOption(option);
+  const handleSortChange = (sortOption) => {
+    setSortOption(sortOption);
     let sortedProducts;
-    if (option === 'priceAsc') {
+    if (sortOption === 'priceAsc') {
       sortedProducts = [...products].sort((a, b) => a.price - b.price);
-    } else if (option === 'priceDesc') {
+    } else if (sortOption === 'priceDesc') {
       sortedProducts = [...products].sort((a, b) => b.price - a.price);
     } else {
       sortedProducts = [...products].sort((a, b) => a.id - b.id);
@@ -144,7 +144,7 @@ function ProductComparison() {
       setProducts(originalProducts);
     } else {
       const filteredProducts = originalProducts.filter(
-        product => product.platform.trim() === platform
+        product => product.platform === platform
       );
       setProducts(filteredProducts);
       setTotalPages(Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE)); // 更新总页数
@@ -362,7 +362,7 @@ function ProductComparison() {
                         overflow: 'hidden',      // 隐藏溢出部分
                         textOverflow: 'ellipsis',// 使用省略号表示溢出
                         whiteSpace: 'normal',    // 允许换行
-                        fontSize: { xs: 15, sm: 18, lg:20 },
+                        fontSize: { xs: 15, sm: 18, },
                       }}
                     >
                       {product.title}

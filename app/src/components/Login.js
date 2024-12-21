@@ -129,7 +129,9 @@ function Login({ setIsAuthenticated }) {
                 alignItems: 'center',
               }}
             >
-              <Avatar sx={{ m: 1, bgcolor: 'transparent', width: 120, height: 120 }}>
+              <Avatar sx={{ m: 1, bgcolor: 'transparent',
+                  width: { xs: 80, sm: 120 },
+                  height: { xs: 80, sm: 120 } }}>
                 <img src={PIcon} alt="Login Icon" style={{ width: '100%', height: '100%' }} />
               </Avatar>
               <Typography component="h1" variant="h4">

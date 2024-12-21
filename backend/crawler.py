@@ -1,6 +1,9 @@
 import os
 import pickle
+from hashlib import sha256
+
 import django
+from selenium.common import NoSuchElementException
 
 # 设置Django环境
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'djangoProject.settings')  # 替换'myproject'为你的项目名称
@@ -12,11 +15,12 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from DrissionPage import ChromiumPage
 from selenium.webdriver.chrome.options import Options
 from DrissionPage.errors import ElementNotFoundError
 from pyquery import PyQuery as pq
-from .models import Products,Likes,Prices
+from backend.models import Products,Likes,Prices
+from selenium.webdriver.chrome.service import Service
+from DrissionPage import ChromiumPage
 
 def crawl_tb(keyword):
     """
@@ -36,7 +40,8 @@ def crawl_tb(keyword):
                         shop=product['shop'],
                         img=product['img'],
                         link=product['link'],
-                        platform=product['platform']
+                        platform=product['platform'],
+                        link_hash = product['link_hash']
                     )
             except Exception as e:
                 print(f"保存商品时出错: {e}")
@@ -86,7 +91,7 @@ def crawl_tb(keyword):
             link = "https:" + t_url if t_url.startswith("//") else t_url
             # img = item.find('.mainPicWrapper--qRLTAeii img').attr('src')
             img = item.find('img.mainPic--Ds3X7I8z').attr('src')
-
+            link_hash = sha256(link.encode('utf-8')).hexdigest()
             product = {
                 'title': title,
                 'price': price,
@@ -94,7 +99,8 @@ def crawl_tb(keyword):
                 'shop': shop,
                 'link': link,
                 'img': img,
-                'platform': '淘宝'
+                'platform': '淘宝',
+                'link_hash': link_hash,
             }
             print(f"准备保存的商品：{product}")
             filtered_products.append(product)
@@ -127,7 +133,15 @@ def crawl_tb(keyword):
     options.add_argument("--headless")
     options.add_argument("--disable-gpu")
     options.add_experimental_option("excludeSwitches", ['enable-automation'])
+    options.add_argument("--no-sandbox")
+    options.add_argument(
+        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    )
 
+    # 指定浏览器和驱动路径
+
+    # driver_path = "/usr/bin/chromedriver"  # 替换为实际的 ChromeDriver 路径
+    # driver = webdriver.Chrome(service=Service(driver_path), options=options)
     driver = webdriver.Chrome(options=options)
     driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument",
                            {"source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"})
@@ -135,12 +149,12 @@ def crawl_tb(keyword):
     driver.get("https://www.taobao.com")
     driver.maximize_window()
     # 加载 Cookies
-    with open("cookies.pkl", "rb") as file:
-        cookies = pickle.load(file)
-        for cookie in cookies:
-            driver.add_cookie(cookie)
-
-    driver.refresh()  # 刷新页面以应用 Cookies
+    # with open("tb_cookies.pkl", "rb") as file:
+    #     cookies = pickle.load(file)
+    #     for cookie in cookies:
+    #         driver.add_cookie(cookie)
+    #
+    # driver.refresh()  # 刷新页面以应用 Cookies
     wait = WebDriverWait(driver, 5)
 
     try:
@@ -154,8 +168,9 @@ def crawl_tb(keyword):
     except Exception as e:
         print("通过 JavaScript 关闭弹窗失败:", e)
 
-    input('...')
-    search_goods(keyword, 1, 2)  # 从第一页爬取两页数据
+    input('请先登录')
+
+    search_goods(keyword, 1, 1)  # 爬取1页数据
     # 爬取数据逻辑
     print(f"所有关键词爬取完成，数据已存储到数据库！")
 
@@ -177,6 +192,7 @@ def crawl_jd(keyword):
                         shop=product['shop'],
                         img=product['img'],
                         link=product['link'],
+                        link_hash=product['link_hash'],
                         platform='京东'
                     )
             except Exception as e:
@@ -184,16 +200,26 @@ def crawl_jd(keyword):
 
     # 配置无头模式
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--no-sandbox")
+    # chrome_options.add_argument("--headless")
+    # chrome_options.add_argument("--disable-gpu")
+    # chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument(
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
 
+    # driver_path = "/usr/bin/chromedriver"  # 替换为实际的 ChromeDriver 路径
+
     # 初始化浏览器
+    # driver = webdriver.Chrome(service=Service(driver_path), options=chrome_options)
     driver = webdriver.Chrome(options=chrome_options)
     driver.get('https://www.jd.com')
     driver.maximize_window()
+
+    # with open("jd_cookies.pkl", "rb") as file:
+    #     cookies = pickle.load(file)
+    #     for cookie in cookies:
+    #         driver.add_cookie(cookie)
+    #
+    # driver.refresh()  # 刷新页面以应用 Cookies
     time.sleep(random.uniform(2, 5))
 
     # 搜索商品
@@ -206,7 +232,7 @@ def crawl_jd(keyword):
 
     print(f"正在提取商品信息: {keyword}")
 
-    for page in range(2):
+    for page in range(1):
         time.sleep(random.uniform(2, 5))
 
         # 滑动页面，加载商品信息
@@ -241,7 +267,7 @@ def crawl_jd(keyword):
                 link = li.find_element(By.CSS_SELECTOR, '.p-img a').get_attribute('href')
                 if not link.startswith("http"):
                     link = f"https:{link}"
-
+                link_hash = sha256(link.encode('utf-8')).hexdigest()
                 product = {
                     'title': title,
                     'price': price,
@@ -249,6 +275,7 @@ def crawl_jd(keyword):
                     'shop': shop,
                     'img': img,
                     'link': link,
+                    'link_hash':link_hash
                 }
                 filtered_products.append(product)
                 print(product)
@@ -271,7 +298,18 @@ def crawl_jd(keyword):
 def tb_update_price(good,url):
     options = webdriver.ChromeOptions()
     options.add_experimental_option("excludeSwitches", ['enable-automation'])
-    driver = webdriver.Chrome(options=options)
+    # options.add_argument("--headless")  # 无头模式
+    # options.add_argument("--disable-gpu")
+    # options.add_argument("--no-sandbox")
+    options.add_argument(
+        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    )
+
+    # driver_path = "/usr/bin/chromedriver"
+
+    # 初始化 Selenium 驱动
+    # driver = webdriver.Chrome(service=Service(driver_path), options=options)
+    driver =webdriver.Chrome(options=options)
 
     try:
         # 反爬机制
@@ -279,10 +317,16 @@ def tb_update_price(good,url):
                                {"source": """Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"""})
         driver.get(url)
         driver.maximize_window()
-        wait = WebDriverWait(driver, 10)
+
         # 手动扫码登录
-        input("请在浏览器中扫码登录，完成后按回车继续...")
-        # time.sleep(10)
+        # with open("tb_cookies.pkl", "rb") as file:
+        #     cookies = pickle.load(file)
+        #     for cookie in cookies:
+        #         driver.add_cookie(cookie)
+        #
+        # driver.refresh()  # 刷新页面以应用 Cookies
+        wait = WebDriverWait(driver, 5)
+        input("请先登录...后按回车键继续")
         time.sleep(random.uniform(3, 5))  # 额外等待时间，确保 JavaScript 内容加载完成
 
         # 获取页面 HTML 源代码
@@ -293,13 +337,13 @@ def tb_update_price(good,url):
         # current_price = doc('div.extraPrice--Y7SiNGXT .priceText--gdYzG_l_.extraPriceText--aysuZjG_').text()
 
         if current_price:
-            good.modify_price(current_price)
+            good.price=current_price
             good.save()
         else:
             # 尝试获取单一价格
             current_price = doc('div.highlightPrice--OOP9oDP8 .text--fZ9NUhyQ').eq(0).text()
             if current_price:
-                good.modify_price(current_price)
+                good.price=current_price
                 good.save()
             else:
                 print("未找到任何价格信息")
@@ -313,13 +357,79 @@ def tb_update_price(good,url):
     finally:
         driver.quit()
 
+
+# def jd_update_price(good, url):
+#     """从京东获取商品价格并更新。"""
+#
+#     # 指定浏览器和驱动路径
+#     # driver_path = "/usr/bin/chromedriver"  # 替换为实际的 ChromeDriver 路径
+#     #
+#     # # 如果 Cookies 文件不存在，启动有头模式保存 Cookies
+#     # if not os.path.exists("jd_cookies.pkl"):
+#     #     save_jd_cookies(driver_path)
+#
+#     # 配置 Chrome 浏览器选项
+#     chrome_options = webdriver.ChromeOptions()
+#     # chrome_options.add_argument("--headless")  # 无头模式
+#     # chrome_options.add_argument("--disable-gpu")
+#     # chrome_options.add_argument("--no-sandbox")
+#     chrome_options.add_argument(
+#         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+#     )
+#
+#     # 初始化 Selenium 驱动
+#     # driver = webdriver.Chrome(service=Service(driver_path), options=chrome_options)
+#     driver = webdriver.Chrome(options=chrome_options)
+#     try:
+#         # 打开指定 URL
+#         driver.get(url)
+#         driver.maximize_window()
+#         # 加载保存的 Cookies
+#         # with open("jd_cookies.pkl", "rb") as file:
+#         #     cookies = pickle.load(file)
+#         #     for cookie in cookies:
+#         #         # if "domain" in cookie:
+#         #         #     cookie["domain"] = ".jd.com"  # 确保域名正确
+#         #         driver.add_cookie(cookie)
+#         #
+#         # driver.refresh()  # 刷新页面以应用 Cookies
+#         input("请先登陆...")
+#         time.sleep(random.uniform(2, 5))  # 模拟人工延迟
+#
+#         print("Successfully loaded the product page, fetching the price...")
+#         driver.get(url)
+#         # 定位并获取价格元素
+#         try:
+#             price_element = driver.find_element(By.CSS_SELECTOR, ".price")
+#             price_float = float(price_element.text)
+#         except NoSuchElementException:
+#             price_element = driver.find_element(By.CSS_SELECTOR, ".p-price")
+#             price_cleaned = price_element.text.replace('￥', '').strip()
+#             price_float = float(price_cleaned)
+#
+#         print(f"Current Product Price: {price_float}")
+#
+#         # 更新商品价格并保存
+#         good.modify_price(price_float)
+#         good.save()
+#
+#         # 将价格加入历史价格表
+#         product_new_price = Prices(product=good, price=price_float)
+#         product_new_price.save()
+#
+#     except NoSuchElementException:
+#         print("Error: Unable to find the price element on the page.")
+#     finally:
+#         driver.quit()
+
 def jd_update_price(good,url):
     driver = ChromiumPage()
     try:
         # Open the specified URL
         driver.get(url)
         time.sleep(random.uniform(2, 5))  # Simulate a human interaction delay
-        time.sleep(10) # 手动登录
+        input("请先登录后按回车键继续")
+
         print("Successfully loaded the product page, fetching the price...")
 
         # Locate and fetch the price element on the page
@@ -333,7 +443,7 @@ def jd_update_price(good,url):
             price_float = float(price_cleaned)
             print(f"Current Product Price: {price_float}")
 
-        good.modify_price(price_float)
+        good.price=price_float
         good.save()
         # 将价格加入历史价格表
         product_new_price = Prices(product=good, price=price_float)
@@ -344,91 +454,52 @@ def jd_update_price(good,url):
     finally:
         driver.quit()  # Ensure the browser closes after the task
 
-from django.db import transaction
-from django.core.paginator import Paginator
-
-
-def update_favorite_prices():
-    """
-    后端管理员手动对用户关注的商品进行价格更新
-    用户关注表Likes
-    """
-    try:
-        # 批量处理商品，设置每页处理数量
-        batch_size = 5
-
-        # 获取用户关注的所有商品，并根据平台分类
-        favorite_products = Products.objects.filter(
-            id__in=Likes.objects.values_list('product_id', flat=True).distinct()
-        )
-        print(f"喜欢的商品数: {Likes.objects.count()}")
-        print(f"关注商品的ID列表: {Likes.objects.values_list('product_id', flat=True).distinct()}")
-        print(f"过滤后的商品数: {favorite_products.count()}")
-
-        # 淘宝商品价格更新
-        tb_products = favorite_products.filter(platform="淘宝").order_by('id')
-        tb_paginator = Paginator(tb_products, batch_size)
-        print(f"淘宝商品数: {tb_products.count()}")
-
-
-        for page_number in tb_paginator.page_range:
-            try:
-                with transaction.atomic():
-                    page = tb_paginator.page(page_number)
-                    for product in page.object_list:
-                        try:
-                            tb_update_price(product, product.link)
-                        except Exception as e:
-                            # 捕获单个商品更新异常并记录日志
-                            print(f"Failed to update price for 淘宝商品 {product.id}: {e}")
-            except Exception as e:
-                # 捕获分页事务异常并记录日志
-                print(f"Transaction failed for 淘宝商品 batch {page_number}: {e}")
-
-        # 京东商品价格更新
-        jd_products = favorite_products.filter(platform="京东").order_by('id')
-        jd_paginator = Paginator(jd_products, batch_size)
-        print(f"京东商品数: {jd_products.count()}")
-
-        for page_number in jd_paginator.page_range:
-            try:
-                with transaction.atomic():
-                    page = jd_paginator.page(page_number)
-                    for product in page.object_list:
-                        try:
-                            jd_update_price(product, product.link)
-                        except Exception as e:
-                            # 捕获单个商品更新异常并记录日志
-                            print(f"Failed to update price for 京东商品 {product.id}: {e}")
-            except Exception as e:
-                # 捕获分页事务异常并记录日志
-                print(f"Transaction failed for 京东商品 batch {page_number}: {e}")
-
-    except Exception as e:
-        # 捕获整个更新过程中的异常
-        print(f"Overall update_prices process failed: {e}")
-
-def save_cookies():
+def save_tb_cookies():
     options = webdriver.ChromeOptions()
     options.add_experimental_option("excludeSwitches", ['enable-automation'])
     driver = webdriver.Chrome(options=options)
     driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument",
                            {"source": "Object.defineProperty(navigator, 'webdriver', {get: () => undefined})"})
 
-    driver.get("https://www.taobao.com")
-    driver.maximize_window()
+    try:
+        driver.get("https://www.taobao.com")
+        driver.maximize_window()
 
-    # 等待用户手动登录
-    input("请手动完成登录后按 Enter 键继续...")
+        # 等待用户手动登录
+        # input("请手动完成登录后按 Enter 键继续...")
+        time.sleep(20)
 
-    # 保存 Cookies 到文件
-    with open("cookies.pkl", "wb") as file:
-        pickle.dump(driver.get_cookies(), file)
+        # 保存 Cookies 到文件
+        with open("tb_cookies.pkl", "wb") as file:
+            pickle.dump(driver.get_cookies(), file)
 
-    print("Cookies 已保存")
-    driver.quit()
+        print("Cookies 已保存")
+    finally:
+        driver.quit()
 
-if __name__ == "__main__":
-    # update_favorite_prices()
-    # save_cookies()
-    crawl_tb('台灯')
+def save_jd_cookies(driver_path):
+    """启动有头模式浏览器保存用户登录的 Cookie。"""
+    options = webdriver.ChromeOptions()
+    options.add_argument("--remote-debugging-port=9222")  # 开启远程调试
+    options.add_argument("--disable-dev-shm-usage")  # 使用 /dev/shm 以避免共享内存不足
+    options.add_argument("--disable-extensions")  # 禁用扩展
+    options.add_argument("--disable-software-rasterizer")  # 禁用软件光栅化器
+    options.add_argument("--disable-setuid-sandbox")  # 禁用 setuid 沙盒
+    options.add_argument("--remote-debugging-port=9222")  # 远程调试端口
+    options.add_argument("--single-process")  # 强制单进程模式
+
+    driver = webdriver.Chrome(service=Service(driver_path), options=options)
+
+    try:
+        # 打开京东主页并等待用户登录
+        driver.get("https://www.jd.com")
+        driver.maximize_window()
+        print("请手动完成登录...")
+        time.sleep(20)
+        # 保存 Cookies 到文件
+        with open("jd_cookies.pkl", "wb") as file:
+            pickle.dump(driver.get_cookies(), file)
+        print("Cookies 已保存")
+    finally:
+        driver.quit()
+
