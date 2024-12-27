@@ -59,7 +59,7 @@ function Favorites() {
             pointRadius: 4, // 调整数据点的半径
             pointBackgroundColor: 'rgba(75, 192, 192, 1)', // 数据点颜色
             pointBorderWidth: 4, // 数据点边框宽度
-            tension: 0.4,
+            tension: 0.3,
           },
         ],
       });
@@ -208,7 +208,7 @@ function Favorites() {
                     sx={{
                       fontSize: { xs: '0.7rem', sm: '0.85rem' }, // 字体大小
                       padding: { xs: '4px 6px', sm: '6px 10px' }, // 内边距
-                      minWidth: { xs: 'auto', sm: '75px' }, // 最小宽度
+                      minWidth: { xs: 'auto', sm: '80px' }, // 最小宽度
                     }}
                   >
                     查看详情

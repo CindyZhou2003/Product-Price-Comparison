@@ -11,6 +11,7 @@ from backend.models import *
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
 import jieba  # 引入jieba进行中文分词
+import jieba.posseg as pseg
 from django.contrib.auth import authenticate, login as auth_login
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
@@ -395,36 +396,41 @@ def reset_email(request):
         return JsonResponse(response, status=400)
 
     # 获取请求数据
-    user_id = request.POST.get("user_id")
-    new_email = request.POST.get("email")
-    password = request.POST.get("password")
+    data = json.loads(request.body.decode('utf-8'))
+    user_id = data.get("user_id")
+    new_email =data.get("email")
+    password = data.get("password")
 
     if not all([user_id, new_email, password]):
-        response["error"] = "参数不完整。需要 user_id, email 和 password。"
+        response["status"] = 'error'
+        response["message"] = "参数不完整。需要 user_id, email 和 password"
         return JsonResponse(response, status=400)
 
     try:
         # 查找用户
         user = Account.objects.get(id=user_id)
     except Account.DoesNotExist:
-        response["error"] = "用户不存在。"
+        response["status"] = 'error'
+        response["message"] = "用户不存在"
         return JsonResponse(response, status=404)
 
     # 验证密码
     if not check_password(password, user.password):
-        response["error"] = "密码错误。"
+        response["status"] = 'error'
+        response["message"] = "密码错误"
         return JsonResponse(response, status=403)
 
     # 验证新邮箱是否已被使用
     if Account.objects.filter(email=new_email).exists():
-        response["error"] = "该邮箱已被绑定到其他账户。"
+        response["status"] = 'error'
+        response["message"] = "该邮箱已被绑定到其他账户"
         return JsonResponse(response, status=409)
 
     # 更新邮箱
     user.email = new_email
     user.save()
-
-    response["message"] = "邮箱更新成功。"
+    response["status"] = 'success'
+    response["message"] = "邮箱更新成功"
     return JsonResponse(response, status=200)
 
 
@@ -499,7 +505,7 @@ def update_and_show_price(request):
         # 准备返回给前端的历史价格数据
         price_history_list = []
 
-        if price_history_list:
+        if price_history:
             for entry in price_history:
                 price_history_list.append({
                     'date': entry.created_at.strftime('%Y-%m-%d'),  # 转换日期格式
@@ -532,7 +538,7 @@ def show_price(request):
         price_history = Prices.objects.filter(product=good).order_by('created_at')
 
         price_history_list = []
-        if price_history_list:
+        if price_history:
             for entry in price_history:
                 price_history_list.append({
                     'date': entry.created_at.strftime('%Y-%m-%d'),  # 转换日期格式
@@ -573,7 +579,6 @@ def search_products(request):
     try:
         # 获取请求中的数据
         search = request.GET.get("search")
-        # platform = request.GET.get("platform")
 
         # 如果search为空，直接返回空结果
         if not search:
@@ -581,15 +586,8 @@ def search_products(request):
             response["message"] = "搜索关键词为空"
             return JsonResponse(response)
 
-        # 对搜索关键词进行分词处理
-        search_terms = jieba.lcut(search)  # 使用jieba进行分词
-
-        # 创建Q对象来构建查询条件
-        query = Q()
-        for term in search_terms:
-            query |= Q(title__icontains=term)  # 模糊查询title中包含每个分词
-
-        products = Products.objects.filter(query)
+        # 调用数据库搜索逻辑
+        products = search_database(jieba.lcut(search))
 
         # 构建返回结果
         for product in products:
@@ -614,10 +612,20 @@ def search_products(request):
     return JsonResponse(response)
 
 def search_database(search_terms):
-    query = Q()
+    query_list = []
     for term in search_terms:
-        query |= Q(title__icontains=term)
-    return Products.objects.filter(query)
+        # 同时考虑包含该关键词以及关键词靠后的情况（示例逻辑）
+        query_contains = Q(title__icontains=term)
+        query_ends = Q(title__iendswith=term)
+        # 通过组合多个以关键词结尾的查询条件来体现更高权重（这里简单用两次结尾匹配模拟更高权重，可按需调整）
+        weighted_query = query_ends | query_ends | query_contains
+        query_list.append(weighted_query)
+
+    combined_query = query_list[0]
+    for q in query_list[1:]:
+        combined_query &= q
+
+    return Products.objects.filter(combined_query).order_by('title')
 
 @csrf_exempt
 @require_http_methods(["GET"])

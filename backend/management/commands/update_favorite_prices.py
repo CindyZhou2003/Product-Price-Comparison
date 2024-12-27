@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.core.paginator import Paginator
 from django.db import transaction
 from backend.models import Products, Likes
-from backend.crawler import tb_update_price, jd_update_price  # 假设这些工具函数已经定义
+from backend.crawler import tb_update_price, jd_update_price
 
 class Command(BaseCommand):
     help = "Update prices for products that users have marked as favorites."

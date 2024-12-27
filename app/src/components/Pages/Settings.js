@@ -117,12 +117,12 @@ function Settings() {
 
       const response = await axios.post('http://127.0.0.1:8000/backend/reset_email', {
         user_id: userId,
-        email:userInfo.email,
+        email:newEmail,
         password:password,
       });
 
       if (response.data.status === 'success') {
-        handleSnackbarOpen(`修改密码成功！`, 'success');
+        handleSnackbarOpen(`修改邮箱成功！`, 'success');
         window.location.reload(); // 刷新当前页面
       } else {
         handleSnackbarOpen(`修改邮箱失败：${response.data.message}`, 'error');
@@ -130,7 +130,6 @@ function Settings() {
     } catch (error) {
       console.error('修改邮箱请求失败:', error);
       handleSnackbarOpen(`修改邮箱失败，请稍后重试！`, 'error');
-      alert('');
     }
   };
 
@@ -143,7 +142,7 @@ function Settings() {
 
     try {
       const response = await axios.post('http://127.0.0.1:8000/backend/send_verification_code',
-          { email: userInfo.email });
+          { email: newEmail });
       if (response.data.status === 'success') {
         handleSnackbarOpen(`验证码已发送到您的邮箱，请注意查收`, 'info');
         setIsCodeSent(true);

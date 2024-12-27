@@ -1,6 +1,13 @@
 # B/S 商品比价网站
 ## 注意
-Docker 部署的方式没有办法进行爬虫相关的操作，若要进行爬虫相关的操作需要在本地运行
+Docker 部署的方式由于浏览器问题没有办法进行爬虫相关的操作（主要为平台内搜索和历史价格搜索功能），若要进行爬虫相关的操作只能采用本地部署
+
+# 项目结构
+`./app` 项目前端
+`./backend`以及`./djangoProject` 项目后端
+`./data` 项目爬取的一些商品信息以及项目某些表的sql文件
+`./catch` 项目爬虫文件（用于爬取信息加入数据库）
+`./report` 项目报告，包括设计报告、用户使用手册、测试报告灯（设计报告部分有修改）
 
 ## 本地部署
 ### 数据库
@@ -12,9 +19,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         # change the content to your local database information
-        'NAME': 'bs', # 数据库名称
-        'USER': 'root', # user
-        'PASSWORD': 'Sql_201208', # 对应的密码
+        'NAME': 'bs', # 数据库名称，根据自己数据库的名称修改
+        'USER': 'root', # 用户名
+        'PASSWORD': 'Sql_201208', # 数据库对应的密码
         # 'HOST': 'db', # docker用这个
         'HOST': 'localhost', #本地部署就是这个不用改
         # 'PORT': '3306', # docker用这个
@@ -57,13 +64,14 @@ Python 3.10 虚拟环境`.venv`
 
 ### 管理员
 
-代码在backend/management/commands文件夹下
+代码在backend/management/commands文件夹下:
 
 1. 为之前没有加hash_link的商品加hash_link（现在已经用不到了）
 `python manage.py update_link_hash`
-2. 商品有降价，给用户发邮件
-`python manage.py send_emails`
-3. 更新用户关注的商品价格
+
+2. 更新用户关注的商品价格
 `python manage.py update_favorite_prices`
+（更新整个数据库商品价格的逻辑和更新用户关注的商品价格逻辑一样，由于数据库太大，爬虫登录困难，故没有实现）
 
-
+3. 商品有降价，给用户发邮件
+`python manage.py send_emails`

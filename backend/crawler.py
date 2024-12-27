@@ -177,6 +177,7 @@ def crawl_tb(keyword):
 def crawl_jd(keyword):
     """
     爬取京东商品并保存到 Django 数据库的 Products 表。
+
     :param keyword: 搜索关键词
     """
 
@@ -184,6 +185,7 @@ def crawl_jd(keyword):
         """将商品数据保存到 Django 数据库"""
         for product in products:
             try:
+                # 检查是否已存在相同商品（根据链接判断）
                 if not Products.objects.filter(link=product['link']).exists():
                     Products.objects.create(
                         title=product['title'],
@@ -192,43 +194,19 @@ def crawl_jd(keyword):
                         shop=product['shop'],
                         img=product['img'],
                         link=product['link'],
-                        link_hash=product['link_hash'],
-                        platform='京东'
+                        platform='京东'  # 添加平台名称
                     )
             except Exception as e:
                 print(f"保存商品时出错: {e}")
 
-    # 配置无头模式
-    chrome_options = Options()
-    # chrome_options.add_argument("--headless")
-    # chrome_options.add_argument("--disable-gpu")
-    # chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument(
-        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
-
-    # driver_path = "/usr/bin/chromedriver"  # 替换为实际的 ChromeDriver 路径
-
     # 初始化浏览器
-    # driver = webdriver.Chrome(service=Service(driver_path), options=chrome_options)
-    driver = webdriver.Chrome(options=chrome_options)
+    driver = ChromiumPage()
     driver.get('https://www.jd.com')
-    driver.maximize_window()
-
-    # with open("jd_cookies.pkl", "rb") as file:
-    #     cookies = pickle.load(file)
-    #     for cookie in cookies:
-    #         driver.add_cookie(cookie)
-    #
-    # driver.refresh()  # 刷新页面以应用 Cookies
     time.sleep(random.uniform(2, 5))
-
+    input("等待登录....")
     # 搜索商品
-    # input('请登录后按回车键继续')
-    search_box = WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "#key"))
-    )
-    search_box.send_keys(keyword)
-    driver.find_element(By.CSS_SELECTOR, '.button').click()
+    driver.ele('css:#key').input(keyword)
+    driver.ele('css:.button').click()
 
     print(f"正在提取商品信息: {keyword}")
 
@@ -237,37 +215,41 @@ def crawl_jd(keyword):
 
         # 滑动页面，加载商品信息
         for scroll_pos in range(1000, 10000, 1000):
-            driver.execute_script(f"window.scrollTo(0, {scroll_pos});")
+            driver.scroll.to_location(0, scroll_pos)
             time.sleep(random.uniform(2, 3))
 
-        # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        driver.scroll.to_bottom()
         time.sleep(random.uniform(2, 5))
 
         # 提取商品列表
-        lis = driver.find_elements(By.CSS_SELECTOR, '.gl-item')
+        lis = driver.eles('css:.gl-item')
         print(f"{keyword}: 正在处理第 {page + 1} 页")
 
         filtered_products = []
         for li in lis:
+            """提取商品信息"""
             try:
-                title = li.find_element(By.CSS_SELECTOR, '.p-name a em').text
-                price = li.find_element(By.CSS_SELECTOR, '.p-price strong i').text
-                price = float(price) if price else 0.0
-                if price == 0.0:
+                title = li.ele('css:.p-name a em').text
+                price = li.ele('css:.p-price strong i').text
+                price = float(price) if price else 0.0  # 转为浮点数，默认为 0.0
+                if price == 0.0:  # 过滤价格为 0 的商品
                     continue
 
-                img = li.find_element(By.CSS_SELECTOR, '.p-img a img').get_attribute('src')
-                comments = li.find_element(By.CSS_SELECTOR, '.p-commit strong a').text
+                img = li.ele('css:.p-img a img').attr('src')
+                comments = li.ele('css:.p-commit strong a').text
 
+                # 尝试获取店铺名
                 try:
-                    shop = li.find_element(By.CSS_SELECTOR, '.hd-shopname').text
-                except:
+                    shop = li.ele('css:.hd-shopname').text
+                except ElementNotFoundError:
                     shop = '京东自营'
 
-                link = li.find_element(By.CSS_SELECTOR, '.p-img a').get_attribute('href')
+                # 商品链接
+                link = li.ele('css:.p-img a').attr('href')
                 if not link.startswith("http"):
                     link = f"https:{link}"
-                link_hash = sha256(link.encode('utf-8')).hexdigest()
+
+                # 构建商品信息字典
                 product = {
                     'title': title,
                     'price': price,
@@ -275,23 +257,141 @@ def crawl_jd(keyword):
                     'shop': shop,
                     'img': img,
                     'link': link,
-                    'link_hash':link_hash
                 }
                 filtered_products.append(product)
                 print(product)
             except Exception as e:
                 print(f"提取商品时出错: {e}")
 
+        # 保存数据到数据库
         save_to_db(filtered_products)
 
+        # 翻页操作
         try:
-            next_button = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, ".pn-next"))
-            )
-            next_button.click()
-        except:
+            driver.ele('css:.pn-next').click()
+        except ElementNotFoundError:
             print("未找到下一页按钮，爬取结束")
             break
+
+    driver.quit()
+# def crawl_jd(keyword):
+#     """
+#     爬取京东商品并保存到 Django 数据库的 Products 表。
+#     :param keyword: 搜索关键词
+#     """
+#
+#     def save_to_db(products):
+#         """将商品数据保存到 Django 数据库"""
+#         for product in products:
+#             try:
+#                 if not Products.objects.filter(link=product['link']).exists():
+#                     Products.objects.create(
+#                         title=product['title'],
+#                         price=product['price'],
+#                         info=product['comments'],
+#                         shop=product['shop'],
+#                         img=product['img'],
+#                         link=product['link'],
+#                         link_hash=product['link_hash'],
+#                         platform='京东'
+#                     )
+#             except Exception as e:
+#                 print(f"保存商品时出错: {e}")
+#
+#     # 配置无头模式
+#     chrome_options = Options()
+#     # chrome_options.add_argument("--headless")
+#     # chrome_options.add_argument("--disable-gpu")
+#     # chrome_options.add_argument("--no-sandbox")
+#     chrome_options.add_argument(
+#         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+#
+#     # driver_path = "/usr/bin/chromedriver"  # 替换为实际的 ChromeDriver 路径
+#
+#     # 初始化浏览器
+#     # driver = webdriver.Chrome(service=Service(driver_path), options=chrome_options)
+#     driver = webdriver.Chrome(options=chrome_options)
+#     driver.get('https://www.jd.com')
+#     driver.maximize_window()
+#
+#     # with open("jd_cookies.pkl", "rb") as file:
+#     #     cookies = pickle.load(file)
+#     #     for cookie in cookies:
+#     #         driver.add_cookie(cookie)
+#     #
+#     # driver.refresh()  # 刷新页面以应用 Cookies
+#     time.sleep(random.uniform(2, 5))
+#
+#     # 搜索商品
+#     # input('请登录后按回车键继续')
+#     search_box = WebDriverWait(driver, 10).until(
+#         EC.presence_of_element_located((By.CSS_SELECTOR, "#key"))
+#     )
+#     search_box.send_keys(keyword)
+#     driver.find_element(By.CSS_SELECTOR, '.button').click()
+#
+#     print(f"正在提取商品信息: {keyword}")
+#
+#     for page in range(1):
+#         time.sleep(random.uniform(2, 5))
+#
+#         # 滑动页面，加载商品信息
+#         for scroll_pos in range(1000, 10000, 1000):
+#             driver.execute_script(f"window.scrollTo(0, {scroll_pos});")
+#             time.sleep(random.uniform(2, 3))
+#
+#         # driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+#         time.sleep(random.uniform(2, 5))
+#
+#         # 提取商品列表
+#         lis = driver.find_elements(By.CSS_SELECTOR, '.gl-item')
+#         print(f"{keyword}: 正在处理第 {page + 1} 页")
+#
+#         filtered_products = []
+#         for li in lis:
+#             try:
+#                 title = li.find_element(By.CSS_SELECTOR, '.p-name a em').text
+#                 price = li.find_element(By.CSS_SELECTOR, '.p-price strong i').text
+#                 price = float(price) if price else 0.0
+#                 if price == 0.0:
+#                     continue
+#
+#                 img = li.find_element(By.CSS_SELECTOR, '.p-img a img').get_attribute('src')
+#                 comments = li.find_element(By.CSS_SELECTOR, '.p-commit strong a').text
+#
+#                 try:
+#                     shop = li.find_element(By.CSS_SELECTOR, '.hd-shopname').text
+#                 except:
+#                     shop = '京东自营'
+#
+#                 link = li.find_element(By.CSS_SELECTOR, '.p-img a').get_attribute('href')
+#                 if not link.startswith("http"):
+#                     link = f"https:{link}"
+#                 link_hash = sha256(link.encode('utf-8')).hexdigest()
+#                 product = {
+#                     'title': title,
+#                     'price': price,
+#                     'comments': comments,
+#                     'shop': shop,
+#                     'img': img,
+#                     'link': link,
+#                     'link_hash':link_hash
+#                 }
+#                 filtered_products.append(product)
+#                 print(product)
+#             except Exception as e:
+#                 print(f"提取商品时出错: {e}")
+#
+#         save_to_db(filtered_products)
+#
+#         try:
+#             next_button = WebDriverWait(driver, 10).until(
+#                 EC.presence_of_element_located((By.CSS_SELECTOR, ".pn-next"))
+#             )
+#             next_button.click()
+#         except:
+#             print("未找到下一页按钮，爬取结束")
+#             break
 
     driver.quit()
 

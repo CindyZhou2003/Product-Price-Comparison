@@ -1,33 +1,19 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.management.base import BaseCommand
 from django.core import mail
-from backend.crawler import tb_update_price, jd_update_price
 from backend.models import Account, Likes, Products, Prices
-from backend.views import identify_platform
 
-
-def check_price(item_url):
+def check_price(item_id):
     """
     确认当前价格是否低于之前价格
-    :param item_url: 商品的url
+    :param item_id: 商品的url
     :return: bool True or False
     """
     try:
         # 尝试获取对应的商品记录
-        good = Products.objects.get(link=item_url)
+        good = Products.objects.get(id=item_id)
     except ObjectDoesNotExist:
         raise ValueError("商品未被收录")  # 抛出异常，说明商品未被收录
-
-    # 判断商品所属平台
-    platform = identify_platform(item_url)
-
-    # 更新商品价格
-    if platform == '淘宝':
-        tb_update_price(good, item_url)
-    elif platform == '京东':
-        jd_update_price(good, item_url)
-    else:
-        raise ValueError("不支持的平台")  # 抛出异常，说明该平台无法查询价格
 
     try:
         # 获取用户关注商品的时间
@@ -91,7 +77,7 @@ class Command(BaseCommand):
                 lowered_price_items = []
                 for like in likes:
                     product = like.product
-                    if check_price(product.link):  # 假设 check_price 是检查降价的函数
+                    if check_price(product.id):  # 假设 check_price 是检查降价的函数
                         lowered_price_items.append(product)
 
                 if not lowered_price_items:
@@ -100,7 +86,7 @@ class Command(BaseCommand):
 
                 # 拼接降价商品信息
                 items_info = "\n".join([
-                    f"{item.title}: {item.price} - {item.link}" for item in lowered_price_items
+                    f"{item.title}: {item.price}元 对应链接：{item.link}" for item in lowered_price_items
                 ])
                 subject = "您关注的商品已降价！"
                 message = f"亲爱的 {username},\n\n商品比价网站提醒您，您关注的以下商品已降价：\n\n{items_info}\n\n快去抢购吧！"

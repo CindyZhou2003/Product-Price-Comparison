@@ -81,6 +81,19 @@ function ProductComparison() {
     }
   };
 
+  const handleSortChange = (sortOption) => {
+    setSortOption(sortOption);
+    let sortedProducts;
+    if (sortOption === 'priceAsc') {
+      sortedProducts = [...products].sort((a, b) => a.price - b.price);
+    } else if (sortOption === 'priceDesc') {
+      sortedProducts = [...products].sort((a, b) => b.price - a.price);
+    } else { // 默认顺序
+      sortedProducts = [...originalProducts]; // 使用后端返回的原始顺序
+    }
+    setProducts(sortedProducts);
+  };
+
   //关注函数
   const handleFavoriteClick = async (productId) => {
     const userId = localStorage.getItem('user_id');  // 从 localStorage 获取 user_id
@@ -120,19 +133,6 @@ function ProductComparison() {
       console.error('操作请求失败:', error);
       handleSnackbarOpen(`操作失败，请稍后重试！`, 'error');
     }
-  };
-
-  const handleSortChange = (sortOption) => {
-    setSortOption(sortOption);
-    let sortedProducts;
-    if (sortOption === 'priceAsc') {
-      sortedProducts = [...products].sort((a, b) => a.price - b.price);
-    } else if (sortOption === 'priceDesc') {
-      sortedProducts = [...products].sort((a, b) => b.price - a.price);
-    } else {
-      sortedProducts = [...products].sort((a, b) => a.id - b.id);
-    }
-    setProducts(sortedProducts);
   };
 
   const handlePlatformFilterChange = (event) => {

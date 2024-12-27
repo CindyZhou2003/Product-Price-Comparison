@@ -54,7 +54,7 @@ function PriceHistory() {
               pointRadius: 4,
               pointBackgroundColor: 'rgba(75, 192, 192, 1)',
               pointBorderWidth: 4,
-              tension: 0.4,
+              tension: 0.3,
             },
           ],
         });
