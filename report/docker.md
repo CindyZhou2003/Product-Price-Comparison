@@ -37,7 +37,7 @@ GRANT ALL PRIVILEGES ON *.* TO 'Sql_201208'@'%';
 
 docker exec -it mysql bash
 
-mysqldump -u root -p -P 1024 bs > bs_backup.sql
+mysqldump -u root -p -P 1024 bs > bs.sql
 
 docker cp pcb_backup.sql <container_name>:/pcb_backup.sql
 

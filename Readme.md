@@ -21,7 +21,7 @@ DATABASES = {
         # change the content to your local database information
         'NAME': 'bs', # 数据库名称，根据自己数据库的名称修改
         'USER': 'root', # 用户名
-        'PASSWORD': 'Sql_201208', # 数据库对应的密码
+        'PASSWORD': 'xxx', # 数据库对应的密码
         # 'HOST': 'db', # docker用这个
         'HOST': 'localhost', #本地部署就是这个不用改
         # 'PORT': '3306', # docker用这个
@@ -34,7 +34,7 @@ DATABASES = {
 `python manage.py makemigrations`
 `python manage.py migrate`
 
-3. 项目根目录有一个bs.sql文件是本项目当前数据库的内容，你可以使用命令`mysql -u [username] -p bs < bs.sql`将数据一键导入数据库中
+3. 项目根目录有一个`bs.sql`文件是本项目当前数据库的内容，你可以使用命令`mysql -u [username] -p bs < bs.sql`将数据一键导入数据库中
     您需要输入密码，并确保目标数据库 bs 存在。如果不存在，可以先创建： `CREATE DATABASE bs;`
 
 
