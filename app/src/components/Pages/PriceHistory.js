@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Typography, Box, Button, TextField, Snackbar, Alert } from '@mui/material';
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import api from '../../api';
 import { Line } from 'react-chartjs-2';  // 导入 Line 图表
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend} from 'chart.js';
 
@@ -31,7 +31,7 @@ function PriceHistory() {
     setLoading(true);  // 开始查询时设置为加载中
 
     try {
-      const response = await axios.get('http://127.0.0.1:8000/backend/update_and_show_price', {
+      const response = await api.get('/update_and_show_price', {
         params: { search: searchQuery },
         headers: {
           'Content-Type': 'application/json',

@@ -5,7 +5,7 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import theme from "./style";
 import BgImg from "../asserts/bc2.png";
 import MobileBgImg from '../asserts/phonebc.png'
@@ -44,7 +44,7 @@ function ForgotPassword() {
     try {
       // 调用后端发送验证码
       const forget = true;
-        const response = await axios.post('http://127.0.0.1:8000/backend/send_verification_code',
+        const response = await api.post('/send_verification_code',
             { email:email, forget:forget }, {
           headers: {
             'Content-Type': 'application/json', // 确保内容类型是 JSON
@@ -76,7 +76,7 @@ function ForgotPassword() {
   // 验证验证码
   const handleVerifyCode = async () => {
     try {
-      const response = await axios.post('http://127.0.0.1:8000/backend/verify_code', { email, verification_code: verificationCode });
+      const response = await api.post('/verify_code', { email, verification_code: verificationCode });
       if (response.data.status === 'success') {
         handleSnackbarOpen(`验证码验证成功`, 'success');
         setIsCodeVerified(true);
@@ -97,8 +97,9 @@ function ForgotPassword() {
     }
 
     try {
-      const response = await axios.post('http://127.0.0.1:8000/backend/reset_password', {
+      const response = await api.post('/reset_password', {
         email,
+        verification_code: verificationCode,
         password: newPassword,
       });
       if (response.data.status === 'success') {

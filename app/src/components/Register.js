@@ -7,7 +7,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { useNavigate } from 'react-router-dom';
 import BgImg from '../asserts/bc2.png'
 import MobileBgImg from '../asserts/phonebc.png'
-import axios from "axios";
+import api from '../api';
 import theme from './style'
 import {ThemeProvider } from '@mui/material/styles';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
@@ -49,22 +49,12 @@ function Register() {
     }
 
     try {
-      // 发送请求验证验证码
-      const verifyResponse = await axios.post('http://127.0.0.1:8000/backend/verify_code', {
-        email,
-        verification_code: verificationCode,
-      });
-
-      if (verifyResponse.data.status !== 'success') {
-        handleSnackbarOpen(`验证码错误：${verifyResponse.data.message}`, 'error');
-        return;
-      }
-
-      // 验证成功后发送注册请求
-      const registerResponse = await axios.post('http://127.0.0.1:8000/backend/register', {
+      // 验证码由后端在注册时校验
+      const registerResponse = await api.post('/register', {
         username,
         email,
         password,
+        verification_code: verificationCode,
       });
 
       if (registerResponse.data.status === 'success') {
@@ -90,7 +80,7 @@ function Register() {
     if (isCodeSent) return; // 防止重复发送
 
     try {
-      const response = await axios.post('http://127.0.0.1:8000/backend/send_verification_code', { email });
+      const response = await api.post('/send_verification_code', { email });
       if (response.data.status === 'success') {
         handleSnackbarOpen(`验证码已发送到您的邮箱，请注意查收`, 'info');
         setIsCodeSent(true);

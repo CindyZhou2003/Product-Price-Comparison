@@ -99,6 +99,9 @@ class Likes(models.Model): # 用户关注的商品列表
     user_id = models.ForeignKey(Account, related_name='likes', on_delete=models.CASCADE)  # Link to Account
     product = models.ForeignKey(Products, related_name='liked_by', on_delete=models.CASCADE)  # Link to Products
     created_at = models.DateTimeField(auto_now_add=True) # 关注商品时间
+    # 降价提醒阈值：关注时的价格，每次提醒后更新为提醒时的价格，避免重复提醒
+    alert_price = models.FloatField(null=True, blank=True)
+
     def __str__(self):
         return f"{self.product.title} liked by {self.user_id} on {self.created_at}"
 

@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from "react-router-dom";
 import Grid from '@mui/material/Grid2';
-import axios from "axios";
+import api from '../../api';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 
 function Settings() {
@@ -16,7 +16,6 @@ function Settings() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [emailNotifications, setEmailNotifications] = useState(true);
-  const userId = localStorage.getItem('user_id'); // 获取当前用户 ID
   const [showPassword, setShowPassword] = useState(false); // 控制密码可见性
   const [newEmail, setNewEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,12 +49,11 @@ function Settings() {
       const requestData = {
           new_password: newPassword,
           old_password: oldPassword,
-          user_id: userId,
       };
 
       // 使用axios发送POST请求到后端注册接口
       try {
-          const response = await axios.post('http://127.0.0.1:8000/backend/change_password', requestData, {
+          const response = await api.post('/change_password', requestData, {
               headers: {
                   'Content-Type': 'application/json',
               },
@@ -79,11 +77,10 @@ function Settings() {
   const handleSavePreferences = async() => {
     // 在此处理保存偏好设置的逻辑，例如调用后端 API
       const requestData = {
-          user_id: userId,
           state: emailNotifications,
       }
       try {
-          const response = await axios.post('http://127.0.0.1:8000/backend/change_email_service_state',
+          const response = await api.post('/change_email_service_state',
               requestData, {
               headers: {
                   'Content-Type': 'application/json',
@@ -104,21 +101,11 @@ function Settings() {
 
   const handleEmailChange = async () => {
       try {
-      // 发送请求验证验证码
-      const verifyResponse = await axios.post('http://127.0.0.1:8000/backend/verify_code', {
+      // 验证码由后端在修改邮箱时校验
+      const response = await api.post('/reset_email', {
         email: newEmail,
         verification_code: verificationCode,
-      });
-
-      if (verifyResponse.data.status !== 'success') {
-        handleSnackbarOpen(`验证码错误：${verifyResponse.data.message}`, 'error');
-        return;
-      }
-
-      const response = await axios.post('http://127.0.0.1:8000/backend/reset_email', {
-        user_id: userId,
-        email:newEmail,
-        password:password,
+        password: password,
       });
 
       if (response.data.status === 'success') {
@@ -134,14 +121,14 @@ function Settings() {
   };
 
   const sendVerificationCode = async () => {
-    if (!userInfo.email) {
+    if (!newEmail) {
       handleSnackbarOpen(`请先填写邮箱地址！`, 'warning');
       return;
     }
     if (isCodeSent) return; // 防止重复发送
 
     try {
-      const response = await axios.post('http://127.0.0.1:8000/backend/send_verification_code',
+      const response = await api.post('/send_verification_code',
           { email: newEmail });
       if (response.data.status === 'success') {
         handleSnackbarOpen(`验证码已发送到您的邮箱，请注意查收`, 'info');
@@ -170,10 +157,10 @@ function Settings() {
   useEffect(() => {
     async function getUserInfo() {
       try {
-        const response = await axios.get('http://localhost:8000/backend/get_user_info',
-            {params: { user_id: userId }});
+        const response = await api.get('/get_user_info');
         if (response.data.status === 'success') {
           setUserInfo({ username: response.data.username, email:response.data.email });
+          setEmailNotifications(response.data.email_active);
           handleSnackbarOpen(`获取用户信息成功`, 'success');
         } else {
           console.error("Unexpected API response structure:", response.data);
@@ -185,7 +172,7 @@ function Settings() {
       }
     }
     getUserInfo();
-  }, [userId]);
+  }, []);
 
   return (
 <div>

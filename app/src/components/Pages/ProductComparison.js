@@ -9,7 +9,7 @@ import { useNavigate } from "react-router-dom";
 import Grid from '@mui/material/Grid2';
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
-import axios from "axios";
+import api from '../../api';
 import { ReactComponent as JDLogo } from '../../asserts/JD.svg'; // 替换为京东 logo 的 SVG 文件
 import { ReactComponent as TaobaoLogo } from '../../asserts/TB.svg'; // 替换为淘宝 logo 的 SVG 文件
 
@@ -53,7 +53,7 @@ function ProductComparison() {
     }
     setLoading(true);
     try {
-      const response = await axios.get('http://127.0.0.1:8000/backend/search_products', {
+      const response = await api.get('/search_products', {
         params: { search: searchQuery },
         headers: {
           'Content-Type': 'application/json',
@@ -96,18 +96,15 @@ function ProductComparison() {
 
   //关注函数
   const handleFavoriteClick = async (productId) => {
-    const userId = localStorage.getItem('user_id');  // 从 localStorage 获取 user_id
-
     // 判断当前商品是否已被关注
     const isLiked = favorites[productId];
 
     try {
       // 根据当前状态决定请求类型：喜欢或者取消喜欢
-      const url = isLiked ? 'http://127.0.0.1:8000/backend/unlike' : 'http://127.0.0.1:8000/backend/like';
+      const url = isLiked ? '/unlike' : '/like';
 
-      const response = await axios.post(url, {
+      const response = await api.post(url, {
         id: productId,   // 商品 ID
-        user_id: userId  // 用户 ID
       }, {
         headers: {
           'Content-Type': 'application/json',
@@ -165,7 +162,7 @@ function ProductComparison() {
 
     setLoading(true);
     try {
-      const response = await axios.get('http://127.0.0.1:8000/backend/search_platform_products', {
+      const response = await api.get('/search_platform_products', {
         params: {search: platformSearchQuery,
         platform:selectedPlatform,},
         headers: {

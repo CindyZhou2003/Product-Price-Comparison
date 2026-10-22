@@ -3,8 +3,10 @@ from backend import views
 
 urlpatterns = [
 
+    path('csrf', views.csrf), # 下发 CSRF Cookie
     path('register', views.register),# 注册
     path('login', views.login), # 登录
+    path('logout', views.logout), # 登出
 
     path('change_password', views.change_password), # 修改密码
     path('reset_password', views.reset_password), # 通过邮箱重置密码

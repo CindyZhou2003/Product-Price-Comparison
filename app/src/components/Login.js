@@ -8,7 +8,7 @@ import PIcon from '../asserts/Picon.png'
 import BgImg from '../asserts/bc.png'
 import MobileBgImg from '../asserts/phonebc.png'
 import { useNavigate } from 'react-router-dom';
-import axios from "axios";
+import api from '../api';
 import theme from './style'
 import {ThemeProvider } from '@mui/material/styles';
 // import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
@@ -36,10 +36,9 @@ function Login({ setIsAuthenticated }) {
       username: username,
       password: password,
     };
-    console.log("Submitting request with:", requestData);
     // 在这里处理表单提交逻辑，比如表单验证或登录请求
      try {
-      const response = await axios.post('http://127.0.0.1:8000/backend/login', requestData, {
+      const response = await api.post('/login', requestData, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -47,13 +46,7 @@ function Login({ setIsAuthenticated }) {
         console.log("Response received:", response);
 
         if (response.data.status === 'success') {
-          // 登录成功，更新登录状态并跳转到主页
-          const userId = response.data.user_id;
-          console.log("User ID received:", userId);
-
-          // 将 user_id 存储在 localStorage 中
-          localStorage.setItem('user_id', userId);
-
+          // 登录成功（后端已建立 Session），更新登录状态并跳转到主页
           handleSnackbarOpen(`登录成功！`, 'success');
           setIsAuthenticated(true);
           navigate('/home');

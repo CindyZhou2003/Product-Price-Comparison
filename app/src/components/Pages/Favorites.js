@@ -4,7 +4,7 @@ import { Typography, Box, Button, Card, CardContent, CardMedia, IconButton,Circu
   Dialog, DialogTitle, DialogContent, Snackbar, Alert} from '@mui/material';
 import { useNavigate } from "react-router-dom";
 import Grid from '@mui/material/Grid2';
-import axios from 'axios';
+import api from '../../api';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Tooltip from '@mui/material/Tooltip'
 import { Line } from 'react-chartjs-2';
@@ -15,7 +15,6 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, C
 function Favorites() {
   const navigate = useNavigate();
   const [favorites, setFavorites] = useState([]);
-  const userId = localStorage.getItem('user_id'); // 获取当前用户 ID
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false); // 控制加载状态
   const [priceHistory, setPriceHistory] = useState(null); // 存储历史价格数据
@@ -37,7 +36,7 @@ function Favorites() {
 
     try {
       // 向后端 API 请求历史价格数据
-      const response = await axios.get(`http://127.0.0.1:8000/backend/show_price`, {
+      const response = await api.get(`/show_price`, {
         params: { id: productId }, // 传递商品 ID 参数
       });
 
@@ -79,9 +78,7 @@ function Favorites() {
   useEffect(() => {
     const fetchFavorites = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/backend/get_favorites', {
-          params: { user_id: userId },
-        });
+        const response = await api.get('/get_favorites');
 
         if (response.data.status === 'success') {
           setFavorites(response.data.favorites);
@@ -95,13 +92,12 @@ function Favorites() {
       }
     };
     fetchFavorites();
-  }, [userId]);
+  }, []);
 
   // 移除商品关注
   const handleRemoveFavorite = async (productId) => {
     try {
-      const response = await axios.post('http://127.0.0.1:8000/backend/unlike', {
-        user_id: userId,
+      const response = await api.post('/unlike', {
         id: productId,
       });
 

@@ -4,4 +4,4 @@ app/build
 app/node_modules
 catch
 data
-!*.pkl
+.env

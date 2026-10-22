@@ -27,9 +27,6 @@ function App() {
   return (
     <Router basename={process.env.PUBLIC_URL}>
       <Routes>
-        {/* If not authenticated, redirect to login page */}
-        <Route path="/home" element={isAuthenticated ?
-            <Home setIsAuthenticated={setIsAuthenticated} /> : <Navigate to="/login" />} />
         <Route path="/register" element={<Register />} />
         <Route path="/forgot_password" element={<ForgotPassword />} />
         {/* Login page with state update */}
@@ -38,8 +35,9 @@ function App() {
         <Route path="/" element={isAuthenticated ? <Navigate to="/home" /> : <Navigate to="/login" />} />
 
 
-        {/* Home with nested routes */}
-        <Route path="/home" element={<Home setIsAuthenticated={setIsAuthenticated} />}>
+        {/* Home with nested routes; if not authenticated, redirect to login page */}
+        <Route path="/home" element={isAuthenticated ?
+            <Home setIsAuthenticated={setIsAuthenticated} /> : <Navigate to="/login" />}>
           <Route path="product-comparison" element={<ProductComparison />} />
           <Route path="price-history" element={<PriceHistory />} />
           <Route path="favorites" element={<Favorites />} />

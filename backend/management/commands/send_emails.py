@@ -1,48 +1,22 @@
-from django.core.exceptions import ObjectDoesNotExist
-from django.core.management.base import BaseCommand
 from django.core import mail
-from backend.models import Account, Likes, Products, Prices
+from django.core.management.base import BaseCommand
+from backend.models import Account, Likes, Prices
 
-def check_price(item_id):
+
+def get_alert_price(like):
     """
-    确认当前价格是否低于之前价格
-    :param item_id: 商品的url
-    :return: bool True or False
+    获取该关注记录的降价提醒阈值
+    :param like: 用户的关注记录
+    :return: float 低于该价格才提醒
     """
-    try:
-        # 尝试获取对应的商品记录
-        good = Products.objects.get(id=item_id)
-    except ObjectDoesNotExist:
-        raise ValueError("商品未被收录")  # 抛出异常，说明商品未被收录
+    if like.alert_price is not None:
+        return like.alert_price
 
-    try:
-        # 获取用户关注商品的时间
-        liked_time = Likes.objects.get(product=good).created_at
-    except ObjectDoesNotExist:
-        raise ValueError("未找到用户对该商品的关注记录")  # 抛出异常，说明未找到关注记录
-
-    # 查询商品的历史价格记录
-    price_history = Prices.objects.filter(product=good).order_by('created_at')
-
-    # 找到关注时间之前最近一次的价格
-    pre_liked_price = price_history.filter(created_at__lt=liked_time).last()
-
-    # 如果关注时间之前没有价格记录，使用 Products 表中的价格
-    if not pre_liked_price:
-        pre_liked_price_value = good.price
-    else:
-        pre_liked_price_value = pre_liked_price.price
-
-    # 找到关注时间之后的所有价格
-    post_liked_prices = price_history.filter(created_at__gte=liked_time)
-
-    # 比较逻辑：检查关注时间后的价格是否低于关注时间前的最后价格
-    for post_price in post_liked_prices:
-        if post_price.price < pre_liked_price_value:
-            return True  # 找到符合条件的价格，返回True
-
-    # 如果没有找到更低的价格，返回False
-    return False
+    # 兼容新增 alert_price 字段前的关注记录：取关注前最近一次的价格
+    pre_liked_price = Prices.objects.filter(
+        product=like.product, created_at__lt=like.created_at
+    ).order_by('created_at').last()
+    return pre_liked_price.price if pre_liked_price else like.product.price
 
 
 class Command(BaseCommand):
@@ -51,59 +25,40 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         """
         通过命令行执行邮件发送任务。
-        遍历所有用户，检查他们关注的商品是否降价，若降价则发送邮件。
+        遍历所有用户，检查他们关注的商品当前价格是否低于提醒阈值，若降价则发送邮件。
         """
-        response = {}
-        try:
-            # 获取所有用户
-            users = Account.objects.filter(email_active=True)
+        users = Account.objects.filter(email_active=True)
 
-            if not users.exists():
-                self.stdout.write("没有用户启用邮件服务")
-                return
+        if not users.exists():
+            self.stdout.write("没有用户启用邮件服务")
+            return
 
+        with mail.get_connection() as connection:
             for user in users:
-                user_email = user.email
-                username = user.username
+                likes = Likes.objects.filter(user_id=user).select_related('product')
 
-                # 查询用户关注的商品
-                likes = Likes.objects.filter(user_id=user.id)
-
-                if not likes.exists():
-                    self.stdout.write(f"用户 {username} 没有关注任何商品")
+                lowered_likes = [like for like in likes if like.product.price < get_alert_price(like)]
+                if not lowered_likes:
+                    self.stdout.write(f"用户 {user.username} 没有降价的商品")
                     continue
 
-                # 检查是否有降价商品
-                lowered_price_items = []
-                for like in likes:
-                    product = like.product
-                    if check_price(product.id):  # 假设 check_price 是检查降价的函数
-                        lowered_price_items.append(product)
-
-                if not lowered_price_items:
-                    self.stdout.write(f"用户 {username} 没有降价的商品")
-                    continue
-
-                # 拼接降价商品信息
-                items_info = "\n".join([
-                    f"{item.title}: {item.price}元 对应链接：{item.link}" for item in lowered_price_items
-                ])
-                subject = "您关注的商品已降价！"
-                message = f"亲爱的 {username},\n\n商品比价网站提醒您，您关注的以下商品已降价：\n\n{items_info}\n\n快去抢购吧！"
-
-                # 使用邮件连接发送
-                connection = mail.get_connection()
-                connection.open()
-                email = mail.EmailMessage(
-                    subject,
-                    message,
-                    'CindyZhou6418@gmail.com',  # 替换为发件人地址
-                    [user_email],
+                items_info = "\n".join(
+                    f"{like.product.title}: {like.product.price}元 对应链接：{like.product.link}"
+                    for like in lowered_likes
                 )
-                email.send()
-                connection.close()
+                subject = "您关注的商品已降价！"
+                message = f"亲爱的 {user.username},\n\n商品比价网站提醒您，您关注的以下商品已降价：\n\n{items_info}\n\n快去抢购吧！"
 
-                self.stdout.write(f"已向用户 {username} 发送降价通知")
+                try:
+                    mail.EmailMessage(subject, message, None, [user.email], connection=connection).send()
+                except Exception as e:
+                    # 单个用户发送失败不影响其他用户
+                    self.stderr.write(f"向用户 {user.username} 发送邮件失败: {e}")
+                    continue
 
-        except Exception as e:
-            self.stderr.write(f"发生错误: {str(e)}")
+                # 把阈值更新为本次提醒的价格，同一次降价不重复提醒
+                for like in lowered_likes:
+                    like.alert_price = like.product.price
+                    like.save(update_fields=['alert_price'])
+
+                self.stdout.write(f"已向用户 {user.username} 发送降价通知")

@@ -12,23 +12,8 @@ Docker 部署的方式由于浏览器问题没有办法进行爬虫相关的操�
 ## 本地部署
 ### 数据库
 
-1. 更改`djangoProject/settings.py`中有关数据库的设置：
-
-```python
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        # change the content to your local database information
-        'NAME': 'bs', # 数据库名称，根据自己数据库的名称修改
-        'USER': 'root', # 用户名
-        'PASSWORD': 'xxx', # 数据库对应的密码
-        # 'HOST': 'db', # docker用这个
-        'HOST': 'localhost', #本地部署就是这个不用改
-        # 'PORT': '3306', # docker用这个
-        'PORT':'1024', #本地部署的端口（根据MySQL安装时的设置来，本人运行在1024
-    }
-}
-```
+1. 复制环境变量模板并填写数据库密码、`DJANGO_SECRET_KEY`、发件邮箱等配置（`.env` 已被 git 忽略，不要提交）：
+`cp .env.example .env`
 
 2. 在项目根目录运行以下命令：
 `python manage.py makemigrations`
@@ -48,8 +33,10 @@ DATABASES = {
 `cd app`
 `npm start`
 
+前端通过开发服务器代理（`app/src/setupProxy.js`）把 `/backend` 请求转发到 `http://localhost:8000`，与后端同源，登录状态由 Django Session 维护
+
 ## Docker 部署
-在项目根目录分别运行
+同样需要先在项目根目录准备好 `.env`，然后分别运行
 `docker compose build`
 `docker-compose up`
 
@@ -65,6 +52,10 @@ Python 3.10 虚拟环境`.venv`
 ### 管理员
 
 代码在backend/management/commands文件夹下:
+
+0. 爬虫登录（平台搜索、历史价格、价格更新功能都需要先登录一次，登录失效后重新运行）
+`python manage.py login_crawler taobao`
+`python manage.py login_crawler jd`
 
 1. 为之前没有加hash_link的商品加hash_link（现在已经用不到了）
 `python manage.py update_link_hash`

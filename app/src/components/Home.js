@@ -26,7 +26,7 @@ import React, { useEffect, useState } from 'react';
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import axios from "axios";
+import api from '../api';
 const drawerWidth = 210;
 const phonedrawerWidth = 180;
 
@@ -56,7 +56,12 @@ function Home({ setIsAuthenticated }) {
     setMobileOpen(!mobileOpen);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await api.post('/logout');
+    } catch (err) {
+      console.error('登出请求失败', err);
+    }
     setIsAuthenticated(false);
     localStorage.removeItem("isAuthenticated"); // Clear the persistent state
     navigate('/login');
@@ -64,19 +69,17 @@ function Home({ setIsAuthenticated }) {
   };
   // 获取分类树
   useEffect(() => {
-    fetch('http://localhost:8000/backend/get_categories') // 替换为你的分类接口
-      .then((response) => response.json())
-      .then((data) => {
-        setCategories(data.categories); // 假设返回的 JSON 包含 categories 列表
+    api.get('/get_categories')
+      .then(({ data }) => {
+        setCategories(data.categories);
       })
       .catch((err) => console.error('获取分类失败', err));
   }, []);
 
     const fetchProducts = (categoryId) => {
     setLoadingProducts(true);
-    fetch(`http://localhost:8000/backend/search_through_categories?category=${categoryId}`) // 替换为你的商品接口
-      .then((response) => response.json())
-      .then((data) => {
+    api.get('/search_through_categories', { params: { category: categoryId } })
+      .then(({ data }) => {
         handleSnackbarOpen(`获取分类商品成功`, 'success');
         setAllProducts(data.products || []);
       })
@@ -136,15 +139,13 @@ function Home({ setIsAuthenticated }) {
 
   //关注函数
   const handleFavoriteClick = async (productId) => {
-    const userId = localStorage.getItem('user_id');  // 从 localStorage 获取 user_id
     // 判断当前商品是否已被关注
     const isLiked = favorites[productId];
     try {
       // 根据当前状态决定请求类型：喜欢或者取消喜欢
-      const url = isLiked ? 'http://127.0.0.1:8000/backend/unlike' : 'http://127.0.0.1:8000/backend/like';
-      const response = await axios.post(url, {
+      const url = isLiked ? '/unlike' : '/like';
+      const response = await api.post(url, {
         id: productId,   // 商品 ID
-        user_id: userId  // 用户 ID
       }, {
         headers: {
           'Content-Type': 'application/json',

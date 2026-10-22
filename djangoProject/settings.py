@@ -10,10 +10,16 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
+import os
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# 已存在的环境变量优先于 .env，便于 Docker 覆盖 DB_HOST 等配置
+load_dotenv(BASE_DIR / '.env')
 
 
 # Quick-start development settings - unsuitable for production
@@ -23,21 +29,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 AUTH_USER_MODEL = 'backend.Account'
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-w!vm=g9j)l$b6)(3w)=ah1=0s9ucmxnko*f0wh0z69+^*1k26)"
+SECRET_KEY = os.environ['DJANGO_SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DJANGO_DEBUG') == '1'
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1',]
 
-
-# Include localhost:3000 in CSRF_TRUSTED_ORIGINS
+# 前端经开发服务器代理访问后端，属于同源请求，无需 CORS
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:3000',
-]
-
-# Add this setting if it's not already present
-CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
 ]
 
@@ -54,12 +54,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "corsheaders",
     "backend",
 ]
 
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -97,14 +95,11 @@ WSGI_APPLICATION = "djangoProject.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        # change the content to your local database information
-        'NAME': 'bs',
-        'USER': 'root',
-        'PASSWORD': 'Sql_201208',
-        # 'HOST': 'db',
-        'HOST': 'localhost',
-        # 'PORT': '3306',
-        'PORT':'1024',
+        'NAME': os.environ.get('DB_NAME', 'bs'),
+        'USER': os.environ.get('DB_USER', 'root'),
+        'PASSWORD': os.environ['DB_PASSWORD'],
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '3306'),
     }
 }
 
@@ -150,33 +145,11 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ORIGIN_ALLOW_ALL = True
-CORS_ALLOW_HEADERS = "*"
-
-# 允许跨域访问的域名列表，*表示允许所有域名
-# CORS_ALLOWED_ORIGINS = [
-#     'http://localhost:8080',  # 示例：允许从本地开发服务器访问
-#     'http://localhost:5173',
-#     # 添加其他允许的域名...
-# ]
-
-CORS_ALLOW_METHODS = (
-    'DELETE',
-    'GET',
-    'OPTIONS',
-    'PATCH',
-    'POST',
-    'PUT',
-    'VIEW',
-)
-
 # 发邮件相关设置
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'  # SMTP服务器地址 smtp.gmail.com
+EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'CindyZhou6418@gmail.com'  # 发件人邮箱
-EMAIL_HOST_PASSWORD = 'xnxd hbvz yewl nbim'  # 发件人邮箱密码
-DEFAULT_FROM_EMAIL = 'CindyZhou6418@gmail.com'
+EMAIL_HOST_USER = os.environ['EMAIL_HOST_USER']
+EMAIL_HOST_PASSWORD = os.environ['EMAIL_HOST_PASSWORD']
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
